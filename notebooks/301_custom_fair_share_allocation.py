@@ -57,7 +57,7 @@
 # ── CONFIGURATION ────────────────────────────────────────────────────────────
 
 # Output folder name (overwrites folders of the same name)
-allocation_folder = "my_custom_analysis"
+allocation_folder = "zn-tmp"
 
 # Emission category: "co2-ffi" | "co2" | "all-ghg-ex-co2-lulucf" | "all-ghg"
 emission_category = "all-ghg"
@@ -67,7 +67,8 @@ active_sources = {
     # Target source - What you're allocating
     # - "rcbs": Remaining Carbon Budgets (for budget allocations)
     # - "pathway": IPCC AR6 scenarios (for pathway allocations)
-    "target": "rcbs",
+    # "target": "rcbs",
+    "target": "pathway",
     # Historical emissions - Required for responsibility calculations
     # - "primap-202503": PRIMAP-hist v2.6 (March 2025), 1850-2023
     "emissions": "primap-202503",
@@ -96,15 +97,86 @@ allocations = {
         {
             "allocation_year": [2015],
             "preserve_allocation_year_shares": [False],
+        },
+        {
+            "allocation_year": [2021],
+            "preserve_allocation_year_shares": [False],
+        },
+        {
+            "allocation_year": [2025],
+            "preserve_allocation_year_shares": [False],
+        },
+    ],
+    "per-capita-adjusted-budget": [
+        {
+            "allocation_year": [1990],
+            "pre_allocation_responsibility_weight": [1.0],
+            "pre_allocation_responsibility_year": [1950],
+            "capability_weight": [0.0],
+            "preserve_allocation_year_shares": [False]
+        },
+        {
+            "allocation_year": [2015],
+            "pre_allocation_responsibility_weight": [1.0],
+            "pre_allocation_responsibility_year": [1850],
+            "capability_weight": [0.0],
+            "preserve_allocation_year_shares": [False]
+        },
+        {
+            "allocation_year": [2021],
+            "pre_allocation_responsibility_weight": [0.2],
+            "pre_allocation_responsibility_year": [1850],
+            "capability_weight": [0.8],
+            "preserve_allocation_year_shares": [False]
+        },
+        {
+            "allocation_year": [2021],
+            "pre_allocation_responsibility_weight": [1.0],
+            # "pre_allocation_responsibility_year": [1850],
+            "capability_weight": [0.8],
+            "preserve_allocation_year_shares": [False]
+        },
+    ],
+    "per-capita-adjusted": [
+        {
+            # Can't be later than harmonisation year
+            "first_allocation_year": [2020],
+            "pre_allocation_responsibility_weight": [0.5],
+            # "pre_allocation_responsibility_year": [1850],
+            "capability_weight": [0.5],
+            # "preserve_allocation_year_shares": [False]
+        },
+    ],
+    "cumulative-per-capita-convergence-adjusted": [
+        {
+            # Can't be later than harmonisation year
+            "first_allocation_year": [2020],
+            "capability_weight": [0.5],
+            "pre_allocation_responsibility_weight": [0.5],
+            # Can't be before 2000 because of data issues
+            "pre_allocation_responsibility_year": [2000],
+            "strict": [False],
+        }
+    ],
+    "per-capita-adjusted-gini-budget": [
+        {
+            "allocation_year": [1990],
+            "pre_allocation_responsibility_weight": [0.2],
+            "pre_allocation_responsibility_year": [1950],
+            "capability_weight": [0.8],
+            "income_floor": [10000],
+            "preserve_allocation_year_shares": [False]
         }
     ],
 }
 
 # For pathway allocations only — harmonisation year to historical data
+# # 2022 causing issues below, not sure what is causing that
+# desired_harmonisation_year = 2022
 desired_harmonisation_year = 2020
 
 # Exploration settings
-EXAMPLE_COUNTRIES = ["USA", "CHN", "IND", "DEU", "BRA"]
+EXAMPLE_COUNTRIES = ["USA", "CHN", "IND", "DEU", "BRA", "AUS"]
 PLOT_START_YEAR = 2015
 
 # %% [markdown]
