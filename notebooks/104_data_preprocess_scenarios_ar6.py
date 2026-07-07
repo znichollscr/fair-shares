@@ -329,8 +329,11 @@ for category in timeseries_specs:
         historical_emissions_data[category] = world_emiss
         print(f"  Loaded historical emissions for {category}")
     else:
-        print(f"  Warning: Historical emissions not found for {category}")
-        historical_emissions_data[category] = None
+        raise DataProcessingError(
+            f"Historical emissions file required for harmonisation not found: "
+            f"{emiss_path}. Ensure the emissions preprocessing (notebooks 101/107) "
+            f"has run before scenario harmonisation."
+        )
 
 anchor_year = config.get("harmonisation_year")
 if anchor_year is None:

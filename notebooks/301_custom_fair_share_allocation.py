@@ -147,17 +147,17 @@ allocations = {
             # "preserve_allocation_year_shares": [False]
         },
     ],
-    # "cumulative-per-capita-convergence-adjusted": [
-    #     {
-    #         # Can't be later than harmonisation year
-    #         "first_allocation_year": [2020],
-    #         "capability_weight": [0.5],
-    #         "pre_allocation_responsibility_weight": [0.5],
-    #         # Can't be before 2000 because of data issues
-    #         "pre_allocation_responsibility_year": [2000],
-    #         "strict": [False],
-    #     }
-    # ],
+    "cumulative-per-capita-convergence-adjusted": [
+        {
+            # Can't be later than harmonisation year
+            "first_allocation_year": [2020],
+            "capability_weight": [0.5],
+            "pre_allocation_responsibility_weight": [0.5],
+            # Can't be before 2000 because of data issues
+            "pre_allocation_responsibility_year": [2000],
+            "strict": [False],
+        }
+    ],
     "per-capita-adjusted-gini-budget": [
         {
             "allocation_year": [1990],

@@ -275,6 +275,7 @@ rule compose_config:
     params:
         emission_category=emission_category,
         active_sources=active_sources_dict,
+        harmonisation_year=harmonisation_year,
     run:
         import yaml
         from pathlib import Path
@@ -285,7 +286,7 @@ rule compose_config:
             validated_config, source_id = build_data_config(
                 emission_category=params.emission_category,
                 active_sources=params.active_sources,
-                harmonisation_year=harmonisation_year,
+                harmonisation_year=params.harmonisation_year,
             )
         except (ConfigurationError, DataLoadingError, ValueError) as e:
             raise WorkflowError(
@@ -473,6 +474,7 @@ if uses_scenarios:
                     notebook=scenario_notebook,
                     config=f"{OUTPUT_DIR}/config.yaml",
                     emissions_data=f"{OUTPUT_DIR}/intermediate/emissions/emiss_{emission_category}_timeseries.csv",
+                    lulucf_notebook=(f"{OUTPUT_DIR}/notebooks/107_derive_nghgi_categories_{active_lulucf_source}.ipynb" if _needs_lulucf else []),
                 output:
                     notebook=scenario_nb_out,
                     scenarios=f"{OUTPUT_DIR}/intermediate/scenarios/scenarios_{emission_category}_timeseries.csv",
