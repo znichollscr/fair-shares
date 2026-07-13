@@ -92,6 +92,7 @@ active_sources = {
 # definition, so provide a list of config dicts per approach.
 # For composite categories (all-ghg), non-CO2 pathway equivalents are
 # auto-derived from budget approaches — no need to define them separately.
+# # Playground allocations
 allocations = {
     "equal-per-capita-budget": [
         {
@@ -167,6 +168,108 @@ allocations = {
             "income_floor": [10000],
             "preserve_allocation_year_shares": [False]
         }
+    ],
+}
+allocations = {
+    # 1. Equal Per Capita
+    "equal-per-capita": [
+        {
+            "first_allocation_year": [
+                2015,
+                2020,
+            ],
+            "preserve_first_allocation_year_shares": [False],
+        }
+    ],
+    # 2. Per Capita Adjusted (Annual Shares)
+    "per-capita-adjusted": [
+        # Responsibility only
+        {
+            "first_allocation_year": [2015, 2020],
+            "responsibility_weight": [1.0],
+            "historical_responsibility_year": [1990, 2005, 2015],
+            "preserve_first_allocation_year_shares": [False],
+        },
+        # Capability only
+        {
+            "first_allocation_year": [2015],
+            "capability_weight": [1.0],
+            "preserve_first_allocation_year_shares": [False],
+        },
+        # Both adjustments
+        {
+            "first_allocation_year": [2015, 2020],
+            "responsibility_weight": [0.5],
+            "capability_weight": [0.5],
+            "historical_responsibility_year": [1990, 2005, 2015],
+            "preserve_first_allocation_year_shares": [False],
+        },
+    ],
+    # 3. Per Capita Adjusted with Gini (Annual Shares)
+    "per-capita-adjusted-gini": [
+        # Capability with Gini only
+        {
+            "first_allocation_year": [2015, 2020],
+            "capability_weight": [1.0],
+            "income_floor": [7500],
+            "max_gini_adjustment": [0.8],
+            "preserve_first_allocation_year_shares": [False],
+        },
+        # With responsibility
+        {
+            "first_allocation_year": [2015, 2020],
+            "responsibility_weight": [0.5],
+            "capability_weight": [0.5],
+            "historical_responsibility_year": [1990],
+            "income_floor": [7500],
+            "max_gini_adjustment": [0.8],
+            "preserve_first_allocation_year_shares": [False],
+        },
+    ],
+    # 4. Cumulative Per Capita Convergence
+    "cumulative-per-capita-convergence": [
+        {
+            "first_allocation_year": [2015, 2020],
+        }
+    ],
+    # # 5. Cumulative Per Capita Convergence with Adjustments
+    # # # Some rounding issue in convergence checks means this won't run
+    # "cumulative-per-capita-convergence-adjusted": [
+    #     # Responsibility only
+    #     # Capability only
+    #     # {
+    #     #     "first_allocation_year": [2015, 2020],
+    #     #     "capability_weight": [1.0],
+    #     #     "max_convergence_speed": 1.0,
+    #     # },
+    #     # Both adjustments
+    #     {
+    #         "first_allocation_year": [2015, 2020],
+    #         "responsibility_weight": [0.5],
+    #         "capability_weight": [0.5],
+    #         "historical_responsibility_year": [1990, 2005, 2015],
+    #     },
+    # ],
+    # # 6. Cumulative Per Capita Convergence with Gini
+    # # # # Some rounding issue in convergence checks means this won't run
+    # "cumulative-per-capita-convergence-gini-adjusted": [
+    #     # Capability with Gini only
+    #     {
+    #         "first_allocation_year": [2015, 2020],
+    #         "capability_weight": [1.0],
+    #         "income_floor": [7500],
+    #         "max_gini_adjustment": [0.8],
+    #     },
+    # ],
+    "per-capita-convergence": [
+        {
+            "first_allocation_year": [2015, 2020],
+            "convergence_year": [2050],
+        },
+        {
+            "first_allocation_year": [2015, 2020],
+            "convergence_year": [2035],
+        },
     ],
 }
 
