@@ -94,83 +94,6 @@ active_sources = {
 # auto-derived from budget approaches — no need to define them separately.
 # # Playground allocations
 allocations = {
-    "equal-per-capita-budget": [
-        {
-            "allocation_year": [2015],
-            "preserve_allocation_year_shares": [False],
-        },
-        {
-            "allocation_year": [2021],
-            "preserve_allocation_year_shares": [False],
-        },
-        {
-            "allocation_year": [2025],
-            "preserve_allocation_year_shares": [False],
-        },
-    ],
-    "per-capita-adjusted-budget": [
-        {
-            "allocation_year": [1990],
-            "pre_allocation_responsibility_weight": [1.0],
-            "pre_allocation_responsibility_year": [1950],
-            "capability_weight": [0.0],
-            "preserve_allocation_year_shares": [False]
-        },
-        {
-            "allocation_year": [2015],
-            "pre_allocation_responsibility_weight": [1.0],
-            "pre_allocation_responsibility_year": [1850],
-            "capability_weight": [0.0],
-            "preserve_allocation_year_shares": [False]
-        },
-        {
-            "allocation_year": [2021],
-            "pre_allocation_responsibility_weight": [0.2],
-            "pre_allocation_responsibility_year": [1850],
-            "capability_weight": [0.8],
-            "preserve_allocation_year_shares": [False]
-        },
-        {
-            "allocation_year": [2021],
-            "pre_allocation_responsibility_weight": [1.0],
-            # "pre_allocation_responsibility_year": [1850],
-            "capability_weight": [0.8],
-            "preserve_allocation_year_shares": [False]
-        },
-    ],
-    "per-capita-adjusted": [
-        {
-            # Can't be later than harmonisation year
-            "first_allocation_year": [2020],
-            "pre_allocation_responsibility_weight": [0.5],
-            # "pre_allocation_responsibility_year": [1850],
-            "capability_weight": [0.5],
-            # "preserve_allocation_year_shares": [False]
-        },
-    ],
-    "cumulative-per-capita-convergence-adjusted": [
-        {
-            # Can't be later than harmonisation year
-            "first_allocation_year": [2020],
-            "capability_weight": [0.5],
-            "pre_allocation_responsibility_weight": [0.5],
-            # Can't be before 2000 because of data issues
-            "pre_allocation_responsibility_year": [2000],
-            "strict": [False],
-        }
-    ],
-    "per-capita-adjusted-gini-budget": [
-        {
-            "allocation_year": [1990],
-            "pre_allocation_responsibility_weight": [0.2],
-            "pre_allocation_responsibility_year": [1950],
-            "capability_weight": [0.8],
-            "income_floor": [10000],
-            "preserve_allocation_year_shares": [False]
-        }
-    ],
-}
-allocations = {
     # 1. Equal Per Capita
     "equal-per-capita": [
         {
@@ -187,7 +110,9 @@ allocations = {
         {
             "first_allocation_year": [2015, 2020],
             "pre_allocation_responsibility_weight": [1.0],
-            "pre_allocation_responsibility_year": [1990, 2005, 2015],
+            "pre_allocation_responsibility_year": [2000, 2005, 
+                                                   # 2015
+                                                  ],
             "preserve_first_allocation_year_shares": [False],
         },
         # Capability only
@@ -201,7 +126,9 @@ allocations = {
             "first_allocation_year": [2015, 2020],
             "pre_allocation_responsibility_weight": [0.5],
             "capability_weight": [0.5],
-            "pre_allocation_responsibility_year": [1990, 2005, 2015],
+            "pre_allocation_responsibility_year": [2000, 2005, 
+                                                   # 2015
+                                                  ],
             "preserve_first_allocation_year_shares": [False],
         },
     ],
@@ -220,7 +147,7 @@ allocations = {
             "first_allocation_year": [2015, 2020],
             "pre_allocation_responsibility_weight": [0.5],
             "capability_weight": [0.5],
-            "pre_allocation_responsibility_year": [1990],
+            "pre_allocation_responsibility_year": [2000],
             "income_floor": [7500],
             "max_gini_adjustment": [0.8],
             "preserve_first_allocation_year_shares": [False],
@@ -247,7 +174,7 @@ allocations = {
     #         "first_allocation_year": [2015, 2020],
     #         "pre_allocation_responsibility_weight": [0.5],
     #         "capability_weight": [0.5],
-    #         "pre_allocation_responsibility_year": [1990, 2005, 2015],
+    #         "pre_allocation_responsibility_year": [2000, 2005, 2015],
     #     },
     # ],
     # # 6. Cumulative Per Capita Convergence with Gini
