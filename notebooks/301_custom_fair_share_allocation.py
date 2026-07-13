@@ -186,8 +186,8 @@ allocations = {
         # Responsibility only
         {
             "first_allocation_year": [2015, 2020],
-            "responsibility_weight": [1.0],
-            "historical_responsibility_year": [1990, 2005, 2015],
+            "pre_allocation_responsibility_weight": [1.0],
+            "pre_allocation_responsibility_year": [1990, 2005, 2015],
             "preserve_first_allocation_year_shares": [False],
         },
         # Capability only
@@ -199,9 +199,9 @@ allocations = {
         # Both adjustments
         {
             "first_allocation_year": [2015, 2020],
-            "responsibility_weight": [0.5],
+            "pre_allocation_responsibility_weight": [0.5],
             "capability_weight": [0.5],
-            "historical_responsibility_year": [1990, 2005, 2015],
+            "pre_allocation_responsibility_year": [1990, 2005, 2015],
             "preserve_first_allocation_year_shares": [False],
         },
     ],
@@ -218,9 +218,9 @@ allocations = {
         # With responsibility
         {
             "first_allocation_year": [2015, 2020],
-            "responsibility_weight": [0.5],
+            "pre_allocation_responsibility_weight": [0.5],
             "capability_weight": [0.5],
-            "historical_responsibility_year": [1990],
+            "pre_allocation_responsibility_year": [1990],
             "income_floor": [7500],
             "max_gini_adjustment": [0.8],
             "preserve_first_allocation_year_shares": [False],
@@ -245,9 +245,9 @@ allocations = {
     #     # Both adjustments
     #     {
     #         "first_allocation_year": [2015, 2020],
-    #         "responsibility_weight": [0.5],
+    #         "pre_allocation_responsibility_weight": [0.5],
     #         "capability_weight": [0.5],
-    #         "historical_responsibility_year": [1990, 2005, 2015],
+    #         "pre_allocation_responsibility_year": [1990, 2005, 2015],
     #     },
     # ],
     # # 6. Cumulative Per Capita Convergence with Gini

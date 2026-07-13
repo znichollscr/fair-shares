@@ -12,6 +12,7 @@ from conftest import STANDARD_EMISSION_CATEGORY
 from fair_shares.library.allocations.manager import (
     calculate_absolute_emissions,
     run_allocation,
+    run_parameter_grid,
 )
 from fair_shares.library.allocations.results import (
     BudgetAllocationResult,
@@ -325,6 +326,69 @@ class TestAllocationManager:
                 first_allocation_year=2020,
                 emission_category=STANDARD_EMISSION_CATEGORY,
             )
+
+    def test_run_parameter_grid_rejects_unknown_parameters(self, test_data):
+        """Misspelled/unknown config parameters must raise, not be silently dropped.
+
+        Regression test: ``responsibility_weight`` and
+        ``historical_responsibility_year`` were previously discarded silently
+        (the accepted names are ``pre_allocation_responsibility_weight`` /
+        ``pre_allocation_responsibility_year``), so distinct configurations
+        collapsed into duplicate, mislabelled results.
+        """
+        bad_config = {
+            "per-capita-adjusted": [
+                {
+                    "first-allocation-year": [2020],
+                    "responsibility_weight": [1.0],
+                    "historical_responsibility_year": [1990],
+                }
+            ]
+        }
+
+        with pytest.raises(AllocationError, match="Unknown parameter"):
+            run_parameter_grid(
+                allocations_config=bad_config,
+                population_ts=test_data["population"],
+                gdp_ts=test_data["gdp"],
+                emission_category=STANDARD_EMISSION_CATEGORY,
+            )
+
+        # Both misspelled names should be surfaced to the user.
+        with pytest.raises(AllocationError) as exc_info:
+            run_parameter_grid(
+                allocations_config=bad_config,
+                population_ts=test_data["population"],
+                gdp_ts=test_data["gdp"],
+                emission_category=STANDARD_EMISSION_CATEGORY,
+            )
+        message = str(exc_info.value)
+        assert "responsibility_weight" in message
+        assert "historical_responsibility_year" in message
+        # And the corrected name should be listed as accepted.
+        assert "pre_allocation_responsibility_weight" in message
+
+    def test_run_parameter_grid_accepts_correct_parameter_names(self, test_data):
+        """The corrected parameter names pass validation and run."""
+        good_config = {
+            "per-capita-adjusted": [
+                {
+                    "first-allocation-year": [2020],
+                    "pre_allocation_responsibility_weight": [1.0],
+                    "pre_allocation_responsibility_year": [1990],
+                }
+            ]
+        }
+
+        results = run_parameter_grid(
+            allocations_config=good_config,
+            population_ts=test_data["population"],
+            gdp_ts=test_data["gdp"],
+            country_actual_emissions_ts=test_data["emissions"],
+            responsibility_emissions_ts=test_data["emissions"],
+            emission_category=STANDARD_EMISSION_CATEGORY,
+        )
+        assert len(results) == 1
 
     def test_calculate_absolute_emissions_pathway(self, test_config, test_data):
         """Test calculate_absolute_emissions for pathway allocations."""

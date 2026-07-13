@@ -11,6 +11,7 @@ For theoretical foundations of the equity principles underlying these approaches
 
 from __future__ import annotations
 
+import inspect
 import itertools
 import logging
 from collections.abc import Callable
@@ -569,6 +570,14 @@ def run_parameter_grid(
             # Convert kebab-case to snake_case
             params = {k.replace("-", "_"): v for k, v in params.items()}
 
+            # Reject unknown parameters *before* running. Unrecognised keys
+            # (e.g. a misspelled ``responsibility_weight`` instead of
+            # ``pre_allocation_responsibility_weight``) were previously
+            # discarded silently by ``filter_function_parameters``, causing the
+            # allocation to run with defaults. Distinct configurations then
+            # collapsed into duplicate, mislabelled results. Fail loud instead.
+            _validate_known_parameters(approach, params)
+
             # Determine year parameter and validate all parameters
             is_budget_alloc = is_budget_approach(approach)
             year_param = (
@@ -613,6 +622,52 @@ def run_parameter_grid(
 
     print(f"\nCompleted {len(results)} allocations successfully")
     return results
+
+
+# Arguments injected by the runner (data + context), never supplied by the
+# user's allocation config. Excluded from the "accepted parameters" hint so
+# error messages only list genuine configuration knobs.
+_RUNNER_SUPPLIED_PARAMS = frozenset(
+    {
+        "population_ts",
+        "gdp_ts",
+        "gini_s",
+        "country_actual_emissions_ts",
+        "responsibility_emissions_ts",
+        "world_scenario_emissions_ts",
+        "emission_category",
+        "ur",
+    }
+)
+
+
+def _validate_known_parameters(approach: str, params: dict[str, Any]) -> None:
+    """Raise if a config parameter is not accepted by ``approach``.
+
+    Parameters
+    ----------
+    approach
+        Allocation approach name (already resolved, snake_cased keys expected
+        in ``params``).
+    params
+        Configuration parameters for a single grid entry.
+
+    Raises
+    ------
+    AllocationError
+        If any key in ``params`` is not a parameter of the approach's
+        allocation function. This guards against silently-dropped misspelled
+        parameters, which otherwise collapse distinct configurations into
+        duplicate, mislabelled results.
+    """
+    func = get_function(approach)
+    accepted = set(inspect.signature(func).parameters) - _RUNNER_SUPPLIED_PARAMS
+    unknown = sorted(set(params) - accepted)
+    if unknown:
+        raise AllocationError(
+            f"Unknown parameter(s) for approach '{approach}': {unknown}. "
+            f"Accepted parameters: {sorted(accepted)}."
+        )
 
 
 def _to_list(value: Any) -> list[Any]:
