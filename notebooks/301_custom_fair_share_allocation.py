@@ -54,11 +54,13 @@
 # See [Full guide](https://setupelz.github.io/fair-shares/user-guide/country-fair-shares/) for data source details.
 
 # %%
-from pyprojroot import here
 import os
-import yaml
-from fair_shares.library.utils import setup_data
 from pathlib import Path
+
+import yaml
+from pyprojroot import here
+
+from fair_shares.library.utils import setup_data
 
 project_root = here()
 
@@ -66,6 +68,9 @@ project_root = here()
 # Helper for testing the config file
 # os.environ["CONFIG_FILE"] = "demo-config.yaml"
 # # del os.environ["CONFIG_FILE"]
+
+# %%
+from fair_shares.library.utils.data.config import is_composite_category
 
 # %%
 # ── CONFIGURATION ────────────────────────────────────────────────────────────
@@ -93,7 +98,7 @@ if os.getenv("CONFIG_FILE"):
     emission_category = config_in["emission_category"]
     active_sources = config_in["active_sources"]
     desired_harmonisation_year = config_in["desired_harmonisation_year"]
-    
+
 else:
     active_sources = {
         # Target source - What you're allocating
@@ -138,26 +143,18 @@ setup_info = setup_data(
     harmonisation_year=harmonisation_year,
     verbose=True,
 )
+source_id = setup_info["source_id"]
+print(f"\nSource ID: {source_id}")
 
 # Now set everything else
 if os.getenv("CONFIG_FILE"):
     output_dir = Path(config_in["output_dir"])
     allocations = config_in["allocations"]
 
-    # Has to be here, because the default is for the source_id to determine the output path
-    setup_info = setup_data(
-        project_root=project_root,
-        emission_category=emission_category,
-        active_sources=active_sources,
-        harmonisation_year=harmonisation_year,
-        verbose=True,
-    )
-
 else:
     # Use defaults
     allocation_folder = "zn-tmp"
-    
-    source_id = setup_info["source_id"]
+
     output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
 
     allocations = {
@@ -177,9 +174,11 @@ else:
             {
                 "first_allocation_year": [2015, 2020],
                 "pre_allocation_responsibility_weight": [1.0],
-                "pre_allocation_responsibility_year": [2000, 2005, 
-                                                       # 2015
-                                                      ],
+                "pre_allocation_responsibility_year": [
+                    2000,
+                    2005,
+                    # 2015
+                ],
                 "preserve_first_allocation_year_shares": [False],
             },
             # Capability only
@@ -193,9 +192,11 @@ else:
                 "first_allocation_year": [2015, 2020],
                 "pre_allocation_responsibility_weight": [0.5],
                 "capability_weight": [0.5],
-                "pre_allocation_responsibility_year": [2000, 2005, 
-                                                       # 2015
-                                                      ],
+                "pre_allocation_responsibility_year": [
+                    2000,
+                    2005,
+                    # 2015
+                ],
                 "preserve_first_allocation_year_shares": [False],
             },
         ],
@@ -299,7 +300,6 @@ PLOT_START_YEAR = 2015
 
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.utils import validate_data_source_config
-from fair_shares.library.utils.data.config import is_composite_category
 
 validation_result = validate_data_source_config(
     emission_category=emission_category, active_sources=active_sources, verbose=True
@@ -320,8 +320,6 @@ print(
 # Run data pipeline
 
 
-
-
 # Extract pipeline outputs
 
 processed_dir = setup_info["paths"]["processed_dir"]
@@ -330,7 +328,6 @@ emission_category = setup_info["emission_category"]
 final_categories = setup_info["final_categories"]
 harmonisation_year = setup_info["config"].harmonisation_year
 
-print(f"\nSource ID: {source_id}")
 print(f"Emission category: {emission_category}")
 if len(final_categories) > 1:
     print(f"Final categories: {', '.join(final_categories)}")
@@ -412,8 +409,8 @@ loaded_data = load_allocation_data(
 )
 
 data_context = {
-    "source-id": source_id,
-    "allocation-folder": allocation_folder,
+    # "source-id": source_id,
+    # "allocation-folder": allocation_folder,
     "emission-category": emission_category,
     "target-source": active_sources["target"],
     "emissions-source": active_sources["emissions"],
