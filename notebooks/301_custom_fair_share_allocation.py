@@ -54,157 +54,238 @@
 # See [Full guide](https://setupelz.github.io/fair-shares/user-guide/country-fair-shares/) for data source details.
 
 # %%
+from pyprojroot import here
+import os
+import yaml
+from fair_shares.library.utils import setup_data
+from pathlib import Path
+
+project_root = here()
+
+# %%
+# Helper for testing the config file
+# os.environ["CONFIG_FILE"] = "demo-config.yaml"
+# # del os.environ["CONFIG_FILE"]
+
+# %%
 # ── CONFIGURATION ────────────────────────────────────────────────────────────
 
-# Output folder name (overwrites folders of the same name)
-allocation_folder = "zn-tmp"
-
-# Emission category: "co2-ffi" | "co2" | "all-ghg-ex-co2-lulucf" | "all-ghg"
-emission_category = "all-ghg"
-
-# Data sources
-active_sources = {
-    # Target source - What you're allocating
-    # - "rcbs": Remaining Carbon Budgets (for budget allocations)
-    # - "pathway": IPCC AR6 scenarios (for pathway allocations)
-    # "target": "rcbs",
-    "target": "pathway",
-    # Historical emissions - Required for responsibility calculations
-    # - "primap-202503": PRIMAP-hist v2.6 (March 2025), 1850-2023
-    "emissions": "primap-202503",
-    # GDP - Used for capability-based adjustments
-    # - "wdi-2025": World Bank World Development Indicators (2025)
-    "gdp": "wdi-2025",
-    # Population - Required for per capita calculations
-    # - "un-owid-2025": UN Population Prospects + Our World in Data (2025)
-    "population": "un-owid-2025",
-    # Gini coefficient - For within-country inequality adjustments
-    # - "unu-wider-2025": UNU-WIDER World Income Inequality Database (2025)
-    "gini": "unu-wider-2025",
-    # LULUCF - Required for NGHGI-consistent RCB corrections
-    # - "melo-2026": Melo et al. (2026) NGHGI v3.1 data
-    "lulucf": "melo-2026",
-    # RCB pathway generator - Optional, defaults to "exponential-decay"
-    # "rcb_generator": "exponential-decay",
-}
-
-# Allocation approaches — the codebase runs every permutation within each
+# output_dir: # Output folder name (overwrites folders of the same name)
+#
+# emission_category: "co2-ffi" | "co2" | "all-ghg-ex-co2-lulucf" | "all-ghg"
+#
+# active_sources: Data sources
+#
+# allocations: Allocation approaches — the codebase runs every permutation within each
 # definition, so provide a list of config dicts per approach.
 # For composite categories (all-ghg), non-CO2 pathway equivalents are
 # auto-derived from budget approaches — no need to define them separately.
-# # Playground allocations
-allocations = {
-    # 1. Equal Per Capita
-    "equal-per-capita": [
-        {
-            "first_allocation_year": [
-                2015,
-                2020,
-            ],
-            "preserve_first_allocation_year_shares": [False],
-        }
-    ],
-    # 2. Per Capita Adjusted (Annual Shares)
-    "per-capita-adjusted": [
-        # Responsibility only
-        {
-            "first_allocation_year": [2015, 2020],
-            "pre_allocation_responsibility_weight": [1.0],
-            "pre_allocation_responsibility_year": [2000, 2005, 
-                                                   # 2015
-                                                  ],
-            "preserve_first_allocation_year_shares": [False],
-        },
-        # Capability only
-        {
-            "first_allocation_year": [2015],
-            "capability_weight": [1.0],
-            "preserve_first_allocation_year_shares": [False],
-        },
-        # Both adjustments
-        {
-            "first_allocation_year": [2015, 2020],
-            "pre_allocation_responsibility_weight": [0.5],
-            "capability_weight": [0.5],
-            "pre_allocation_responsibility_year": [2000, 2005, 
-                                                   # 2015
-                                                  ],
-            "preserve_first_allocation_year_shares": [False],
-        },
-    ],
-    # 3. Per Capita Adjusted with Gini (Annual Shares)
-    "per-capita-adjusted-gini": [
-        # Capability with Gini only
-        {
-            "first_allocation_year": [2015, 2020],
-            "capability_weight": [1.0],
-            "income_floor": [7500],
-            "max_gini_adjustment": [0.8],
-            "preserve_first_allocation_year_shares": [False],
-        },
-        # With responsibility
-        {
-            "first_allocation_year": [2015, 2020],
-            "pre_allocation_responsibility_weight": [0.5],
-            "capability_weight": [0.5],
-            "pre_allocation_responsibility_year": [2000],
-            "income_floor": [7500],
-            "max_gini_adjustment": [0.8],
-            "preserve_first_allocation_year_shares": [False],
-        },
-    ],
-    # 4. Cumulative Per Capita Convergence
-    "cumulative-per-capita-convergence": [
-        {
-            "first_allocation_year": [2015, 2020],
-        }
-    ],
-    # # 5. Cumulative Per Capita Convergence with Adjustments
-    # # # Some rounding issue in convergence checks means this won't run
-    # "cumulative-per-capita-convergence-adjusted": [
-    #     # Responsibility only
-    #     # Capability only
-    #     # {
-    #     #     "first_allocation_year": [2015, 2020],
-    #     #     "capability_weight": [1.0],
-    #     #     "max_convergence_speed": 1.0,
-    #     # },
-    #     # Both adjustments
-    #     {
-    #         "first_allocation_year": [2015, 2020],
-    #         "pre_allocation_responsibility_weight": [0.5],
-    #         "capability_weight": [0.5],
-    #         "pre_allocation_responsibility_year": [2000, 2005, 2015],
-    #     },
-    # ],
-    # # 6. Cumulative Per Capita Convergence with Gini
-    # # # # Some rounding issue in convergence checks means this won't run
-    # "cumulative-per-capita-convergence-gini-adjusted": [
-    #     # Capability with Gini only
-    #     {
-    #         "first_allocation_year": [2015, 2020],
-    #         "capability_weight": [1.0],
-    #         "income_floor": [7500],
-    #         "max_gini_adjustment": [0.8],
-    #     },
-    # ],
-    "per-capita-convergence": [
-        {
-            "first_allocation_year": [2015, 2020],
-            "convergence_year": [2050],
-        },
-        {
-            "first_allocation_year": [2015, 2020],
-            "convergence_year": [2035],
-        },
-    ],
-}
-
-# For pathway allocations only — harmonisation year to historical data
+#
+# desired_harmonisation_year: For pathway allocations only — harmonisation year to historical data
 # # 2022 causing issues below, not sure what is causing that
 # desired_harmonisation_year = 2022
-desired_harmonisation_year = 2020
 
+if os.getenv("CONFIG_FILE"):
+    # Load config from file
+    with open(os.getenv("CONFIG_FILE")) as fh:
+        config_in = yaml.safe_load(fh)
+
+    emission_category = config_in["emission_category"]
+    active_sources = config_in["active_sources"]
+    desired_harmonisation_year = config_in["desired_harmonisation_year"]
+    
+else:
+    active_sources = {
+        # Target source - What you're allocating
+        # - "rcbs": Remaining Carbon Budgets (for budget allocations)
+        # - "pathway": IPCC AR6 scenarios (for pathway allocations)
+        # "target": "rcbs",
+        "target": "pathway",
+        # Historical emissions - Required for responsibility calculations
+        # - "primap-202503": PRIMAP-hist v2.6 (March 2025), 1850-2023
+        "emissions": "primap-202503",
+        # GDP - Used for capability-based adjustments
+        # - "wdi-2025": World Bank World Development Indicators (2025)
+        "gdp": "wdi-2025",
+        # Population - Required for per capita calculations
+        # - "un-owid-2025": UN Population Prospects + Our World in Data (2025)
+        "population": "un-owid-2025",
+        # Gini coefficient - For within-country inequality adjustments
+        # - "unu-wider-2025": UNU-WIDER World Income Inequality Database (2025)
+        "gini": "unu-wider-2025",
+        # LULUCF - Required for NGHGI-consistent RCB corrections
+        # - "melo-2026": Melo et al. (2026) NGHGI v3.1 data
+        "lulucf": "melo-2026",
+        # RCB pathway generator - Optional, defaults to "exponential-decay"
+        # "rcb_generator": "exponential-decay",
+    }
+
+    desired_harmonisation_year = 2020
+
+    emission_category = "all-ghg"
+
+# Harmonisation year: needed for pathways and composite categories
+target = active_sources["target"]
+if target != "rcbs" or is_composite_category(emission_category):
+    harmonisation_year = desired_harmonisation_year
+else:
+    harmonisation_year = None
+
+setup_info = setup_data(
+    project_root=project_root,
+    emission_category=emission_category,
+    active_sources=active_sources,
+    harmonisation_year=harmonisation_year,
+    verbose=True,
+)
+
+# Now set everything else
+if os.getenv("CONFIG_FILE"):
+    output_dir = Path(config_in["output_dir"])
+    allocations = config_in["allocations"]
+
+    # Has to be here, because the default is for the source_id to determine the output path
+    setup_info = setup_data(
+        project_root=project_root,
+        emission_category=emission_category,
+        active_sources=active_sources,
+        harmonisation_year=harmonisation_year,
+        verbose=True,
+    )
+
+else:
+    # Use defaults
+    allocation_folder = "zn-tmp"
+    
+    source_id = setup_info["source_id"]
+    output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
+
+    allocations = {
+        # 1. Equal Per Capita
+        "equal-per-capita": [
+            {
+                "first_allocation_year": [
+                    2015,
+                    2020,
+                ],
+                "preserve_first_allocation_year_shares": [False],
+            }
+        ],
+        # 2. Per Capita Adjusted (Annual Shares)
+        "per-capita-adjusted": [
+            # Responsibility only
+            {
+                "first_allocation_year": [2015, 2020],
+                "pre_allocation_responsibility_weight": [1.0],
+                "pre_allocation_responsibility_year": [2000, 2005, 
+                                                       # 2015
+                                                      ],
+                "preserve_first_allocation_year_shares": [False],
+            },
+            # Capability only
+            {
+                "first_allocation_year": [2015],
+                "capability_weight": [1.0],
+                "preserve_first_allocation_year_shares": [False],
+            },
+            # Both adjustments
+            {
+                "first_allocation_year": [2015, 2020],
+                "pre_allocation_responsibility_weight": [0.5],
+                "capability_weight": [0.5],
+                "pre_allocation_responsibility_year": [2000, 2005, 
+                                                       # 2015
+                                                      ],
+                "preserve_first_allocation_year_shares": [False],
+            },
+        ],
+        # 3. Per Capita Adjusted with Gini (Annual Shares)
+        "per-capita-adjusted-gini": [
+            # Capability with Gini only
+            {
+                "first_allocation_year": [2015, 2020],
+                "capability_weight": [1.0],
+                "income_floor": [7500],
+                "max_gini_adjustment": [0.8],
+                "preserve_first_allocation_year_shares": [False],
+            },
+            # With responsibility
+            {
+                "first_allocation_year": [2015, 2020],
+                "pre_allocation_responsibility_weight": [0.5],
+                "capability_weight": [0.5],
+                "pre_allocation_responsibility_year": [2000],
+                "income_floor": [7500],
+                "max_gini_adjustment": [0.8],
+                "preserve_first_allocation_year_shares": [False],
+            },
+        ],
+        # 4. Cumulative Per Capita Convergence
+        "cumulative-per-capita-convergence": [
+            {
+                "first_allocation_year": [2015, 2020],
+            }
+        ],
+        # # 5. Cumulative Per Capita Convergence with Adjustments
+        # # # Some rounding issue in convergence checks means this won't run
+        # "cumulative-per-capita-convergence-adjusted": [
+        #     # Responsibility only
+        #     # Capability only
+        #     # {
+        #     #     "first_allocation_year": [2015, 2020],
+        #     #     "capability_weight": [1.0],
+        #     #     "max_convergence_speed": 1.0,
+        #     # },
+        #     # Both adjustments
+        #     {
+        #         "first_allocation_year": [2015, 2020],
+        #         "pre_allocation_responsibility_weight": [0.5],
+        #         "capability_weight": [0.5],
+        #         "pre_allocation_responsibility_year": [2000, 2005, 2015],
+        #     },
+        # ],
+        # # 6. Cumulative Per Capita Convergence with Gini
+        # # # # Some rounding issue in convergence checks means this won't run
+        # "cumulative-per-capita-convergence-gini-adjusted": [
+        #     # Capability with Gini only
+        #     {
+        #         "first_allocation_year": [2015, 2020],
+        #         "capability_weight": [1.0],
+        #         "income_floor": [7500],
+        #         "max_gini_adjustment": [0.8],
+        #     },
+        # ],
+        "per-capita-convergence": [
+            {
+                "first_allocation_year": [2015, 2020],
+                "convergence_year": [2050],
+            },
+            {
+                "first_allocation_year": [2015, 2020],
+                "convergence_year": [2035],
+            },
+        ],
+    }
+
+print(f"{output_dir=}")
+print(f"{emission_category=}")
+print(f"{active_sources=}")
+print(f"{allocations=}")
+print(f"{desired_harmonisation_year=}")
+
+# %%
+# # Helper to write out config file
+# config_out = {
+#     "output_dir": str(output_dir),
+#     "emission_category": emission_category,
+#     "active_sources": active_sources,
+#     "allocations": allocations,
+#     "desired_harmonisation_year": desired_harmonisation_year
+# }
+# with open("demo-config.yaml", "w") as fh:
+#     yaml.dump(config_out, fh)
+
+# %%
 # Exploration settings
 EXAMPLE_COUNTRIES = ["USA", "CHN", "IND", "DEU", "BRA", "AUS"]
 PLOT_START_YEAR = 2015
@@ -215,20 +296,10 @@ PLOT_START_YEAR = 2015
 
 # %%
 # Validate configuration
-from pyprojroot import here
 
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.utils import validate_data_source_config
 from fair_shares.library.utils.data.config import is_composite_category
-
-project_root = here()
-target = active_sources["target"]
-
-# Harmonisation year: needed for pathways and composite categories
-if target != "rcbs" or is_composite_category(emission_category):
-    harmonisation_year = desired_harmonisation_year
-else:
-    harmonisation_year = None
 
 validation_result = validate_data_source_config(
     emission_category=emission_category, active_sources=active_sources, verbose=True
@@ -247,18 +318,12 @@ print(
 
 # %%
 # Run data pipeline
-from fair_shares.library.utils import setup_data
 
-setup_info = setup_data(
-    project_root=project_root,
-    emission_category=emission_category,
-    active_sources=active_sources,
-    harmonisation_year=harmonisation_year,
-    verbose=True,
-)
+
+
 
 # Extract pipeline outputs
-source_id = setup_info["source_id"]
+
 processed_dir = setup_info["paths"]["processed_dir"]
 original_emission_category = emission_category
 emission_category = setup_info["emission_category"]
@@ -345,8 +410,6 @@ loaded_data = load_allocation_data(
     final_categories=final_categories,
     emission_category=emission_category,
 )
-
-output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
 
 data_context = {
     "source-id": source_id,
