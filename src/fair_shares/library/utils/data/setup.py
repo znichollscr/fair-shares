@@ -446,11 +446,34 @@ def resolve_data_setup(
         resolved_output, source_id, emission_category, target=target
     )
 
-    # Generate Snakemake command
+    # Generate Snakemake command.
+    #
+    # Snakemake gets the *resolved* sources, never the raw ones. There are two
+    # defaulting sites -- ``build_data_config`` above, which fills in the sole
+    # configured bunkers source, and the Snakefile's own
+    # ``config.get("active_bunkers_source", None)``, which does not -- so
+    # handing the raw mapping to Snakemake made them disagree, in three
+    # mutually inconsistent ways at once:
+    #
+    # * ``source_id`` here included the bunkers source, while the Snakefile's
+    #   own ``SOURCE_ID`` did not, so Snakemake built one directory and this
+    #   function then verified a different one;
+    # * the composed ``config.yaml`` recorded ``gcb-2024`` (it goes back
+    #   through ``build_data_config``) while the tree it sat in claimed no
+    #   bunkers source at all;
+    # * notebook 108 read the Snakefile's value and died on
+    #   ``config["bunkers"][None]``.
+    #
+    # A caller that names a bunkers source was never affected, which is why
+    # this survived: every allocation run names one.
+    resolved_sources = dict(active_sources)
+    if data_config.active_bunkers_source is not None:
+        resolved_sources["bunkers"] = data_config.active_bunkers_source
+
     command = generate_snakemake_command(
         emission_category,
         target,
-        active_sources,
+        resolved_sources,
         paths["target_file"],
         harmonisation_year=harmonisation_year,
     )
