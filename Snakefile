@@ -31,6 +31,9 @@ from fair_shares.library.utils.data.config import (
     ALL_GHG_CO2_CATEGORIES,
 )
 from fair_shares.library.utils.dataframes import determine_processing_categories
+from fair_shares.library import paths as fs_paths
+
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Configuration from command line
@@ -89,8 +92,17 @@ SOURCE_ID = build_source_id(
     rcb_generator=rcb_generator,
 )
 
-OUTPUT_DIR = f"output/{SOURCE_ID}"
-NOTEBOOK_DIR = "notebooks"
+# Absolute, and resolved through `paths` rather than assumed to sit under the
+# working directory. A relative "output/..." here silently pinned every rule's
+# target to wherever snakemake happened to be invoked from, so passing
+# `output_dir=` to `setup_data` built the tree in one place and verified it in
+# another. `paths.output_dir()` honours the argument, FAIR_SHARES_OUTPUT_DIR
+# and the surrounding checkout, in that order.
+OUTPUT_DIR = str(fs_paths.output_dir() / SOURCE_ID)
+
+# Code, not data: notebooks live in the checkout and are found relative to it,
+# which is what `workflow.basedir` gives us regardless of the cwd.
+NOTEBOOK_DIR = str(Path(workflow.basedir) / "notebooks")
 
 # Two category lists drive the pipeline:
 #  EMISSION_CATEGORIES — what PRIMAP extraction (notebook 101) produces

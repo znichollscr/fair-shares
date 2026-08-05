@@ -32,6 +32,7 @@ import pandas as pd
 from pyprojroot import here
 
 from fair_shares.library.exceptions import DataLoadingError
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import get_default_unit_registry
 
 # %% tags=["parameters"]
@@ -65,7 +66,7 @@ else:
     source_id = "primap-202503_wdi-2025_un-owid-2025_wdi-2025_rcbs_co2-ffi"
 
 project_root = here()
-intermediate_dir = project_root / f"output/{source_id}/intermediate/emissions"
+intermediate_dir = resolve_source_path(f"output/{source_id}/intermediate/emissions")
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # %%

@@ -63,6 +63,7 @@ from fair_shares.library.exceptions import (
     DataLoadingError,
     DataProcessingError,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     ensure_string_year_columns,
@@ -147,9 +148,9 @@ lulucf_path = lulucf_config["path"]
 lulucf_params = lulucf_config["data_parameters"]
 
 # Paths
-melo_path = project_root / lulucf_path
+melo_path = resolve_source_path(lulucf_path)
 intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
-intermediate_dir = project_root / intermediate_dir_str
+intermediate_dir = resolve_source_path(intermediate_dir_str)
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 emissions_config = config["emissions"][active_emissions_source]

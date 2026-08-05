@@ -36,6 +36,8 @@ import matplotlib.pyplot as plt
 import pyam
 from pyprojroot import here
 
+from fair_shares.library import paths as fs_paths
+
 # Import fair-shares library components
 from fair_shares.library.allocations.pathways import (
     cumulative_per_capita_convergence,
@@ -63,7 +65,7 @@ project_root = here()
 # Needs Population, GDP|PPP, Emissions|Covered.
 
 # %%
-DATA_FILE = project_root / "output" / "iamc" / "iamc_covered.xlsx"
+DATA_FILE = fs_paths.output_dir() / "iamc" / "iamc_covered.xlsx"
 if not DATA_FILE.exists():
     raise FileNotFoundError(
         f"Data file not found: {DATA_FILE}. Run notebook 400 first."

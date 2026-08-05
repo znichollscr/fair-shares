@@ -41,6 +41,7 @@ from fair_shares.library.exceptions import (
     ConfigurationError,
     DataLoadingError,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     ensure_string_year_columns,
@@ -171,8 +172,8 @@ print(f"  Precautionary LULUCF cap: {adjustments_config.precautionary_lulucf}")
 emissions_intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
 scenarios_intermediate_dir_str = f"output/{source_id}/intermediate/scenarios"
 
-emissions_intermediate_dir = project_root / emissions_intermediate_dir_str
-scenarios_intermediate_dir = project_root / scenarios_intermediate_dir_str
+emissions_intermediate_dir = resolve_source_path(emissions_intermediate_dir_str)
+scenarios_intermediate_dir = resolve_source_path(scenarios_intermediate_dir_str)
 
 # Create scenarios output directory
 scenarios_intermediate_dir.mkdir(parents=True, exist_ok=True)
@@ -189,7 +190,7 @@ else:
         "No RCB configuration found in config (expected 'rcbs' or 'rcb-pathways' in targets)"
     )
 
-rcb_yaml_path = project_root / rcb_config["path"]
+rcb_yaml_path = resolve_source_path(rcb_config)["path"]
 
 print("\nPaths:")
 print(f"  RCB YAML: {rcb_yaml_path}")

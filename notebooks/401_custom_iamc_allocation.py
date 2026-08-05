@@ -37,6 +37,7 @@ import pandas as pd
 import pyam
 from pyprojroot import here
 
+from fair_shares.library import paths as fs_paths
 from fair_shares.library.allocations.budgets.per_capita import (
     equal_per_capita_budget,
     per_capita_adjusted_budget,
@@ -76,7 +77,7 @@ project_root = here()
 # %%
 # CONFIGURE YOUR DATA SOURCE HERE
 
-DATA_FILE = project_root / "output" / "iamc" / "iamc_covered.xlsx"
+DATA_FILE = fs_paths.output_dir() / "iamc" / "iamc_covered.xlsx"
 if not DATA_FILE.exists():
     raise FileNotFoundError(
         f"Data file not found: {DATA_FILE}. Run notebook 400 first."
@@ -417,7 +418,7 @@ else:
 
 # %%
 # Export to CSV
-output_dir = project_root / "output" / "iamc" / ALLOCATION_LABEL
+output_dir = fs_paths.output_dir() / "iamc" / ALLOCATION_LABEL
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / f"iamc_{allocation_type}_allocation_{approach}.csv"
 

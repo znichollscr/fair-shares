@@ -39,6 +39,7 @@ from fair_shares.library.exceptions import (
     DataLoadingError,
     DataProcessingError,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.preprocessing import (
     complete_gini,
     emissions_path,
@@ -186,7 +187,7 @@ population_historical_world_key = population_data_parameters.get("historical_wor
 population_projected_world_key = population_data_parameters.get("projected_world_key")
 
 # Get region mapping
-region_mapping = pd.read_csv(project_root / config["general"]["region_mapping"]["path"])
+region_mapping = pd.read_csv(resolve_source_path(config)["general"]["region_mapping"]["path"])
 
 # %%
 # Construct source-specific intermediate dirs from active sources and data
@@ -199,16 +200,16 @@ root_intermediate_dir_str = f"output/{source_id}/intermediate"
 
 # Create output processed intermediate directory
 processed_intermediate_dir_str = f"output/{source_id}/intermediate/processed"
-processed_intermediate_dir = project_root / processed_intermediate_dir_str
+processed_intermediate_dir = resolve_source_path(processed_intermediate_dir_str)
 processed_intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Ensure all intermediate_dirs are Path objects and exist
-emiss_intermediate_dir = project_root / emiss_intermediate_dir_str
-gdp_intermediate_dir = project_root / gdp_intermediate_dir_str
-pop_intermediate_dir = project_root / pop_intermediate_dir_str
-gini_intermediate_dir = project_root / gini_intermediate_dir_str
-scenario_intermediate_dir = project_root / scenario_intermediate_dir_str
-root_intermediate_dir = project_root / root_intermediate_dir_str
+emiss_intermediate_dir = resolve_source_path(emiss_intermediate_dir_str)
+gdp_intermediate_dir = resolve_source_path(gdp_intermediate_dir_str)
+pop_intermediate_dir = resolve_source_path(pop_intermediate_dir_str)
+gini_intermediate_dir = resolve_source_path(gini_intermediate_dir_str)
+scenario_intermediate_dir = resolve_source_path(scenario_intermediate_dir_str)
+root_intermediate_dir = resolve_source_path(root_intermediate_dir_str)
 
 emiss_intermediate_dir.mkdir(parents=True, exist_ok=True)
 gdp_intermediate_dir.mkdir(parents=True, exist_ok=True)

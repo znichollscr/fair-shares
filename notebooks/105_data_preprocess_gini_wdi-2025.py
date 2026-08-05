@@ -38,6 +38,7 @@ import yaml
 from pyprojroot import here
 
 from fair_shares.library.exceptions import ConfigurationError
+from fair_shares.library.paths import resolve_source_path
 
 # %% tags=["parameters"]
 emission_category = None
@@ -119,7 +120,7 @@ region_mapping_path = config["general"]["region_mapping"]["path"]
 
 # Construct source-specific intermediate_dir
 intermediate_dir_str = f"output/{source_id}/intermediate/gini"
-intermediate_dir = project_root / intermediate_dir_str
+intermediate_dir = resolve_source_path(intermediate_dir_str)
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Print out the parameters for debugging
@@ -135,10 +136,10 @@ print(f"Intermediate directory: {intermediate_dir_str}")
 # %%
 # Read CSV, skip metadata rows (first 4 rows are headers/notes)
 print("Loading Gini data...")
-gini_data = pd.read_csv(project_root / gini_path, skiprows=4)
+gini_data = pd.read_csv(resolve_source_path(gini_path), skiprows=4)
 print(f"Gini data shape: {gini_data.shape}")
 
-region_mapping = pd.read_csv(project_root / region_mapping_path)
+region_mapping = pd.read_csv(resolve_source_path(region_mapping_path))
 countries = set(region_mapping["iso3c"].unique())
 print(f"Countries in region mapping: {len(countries)}")
 

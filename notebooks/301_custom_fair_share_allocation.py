@@ -116,6 +116,7 @@ PLOT_START_YEAR = 2015
 # Validate configuration
 from pyprojroot import here
 
+from fair_shares.library import paths as fs_paths
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.utils import validate_data_source_config
 from fair_shares.library.utils.data.config import is_composite_category
@@ -245,7 +246,7 @@ loaded_data = load_allocation_data(
     emission_category=emission_category,
 )
 
-output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
+output_dir = fs_paths.output_dir() / source_id / "allocations" / allocation_folder
 
 data_context = {
     "source-id": source_id,

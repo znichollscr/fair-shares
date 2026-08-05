@@ -7,6 +7,7 @@ that prepares input data for fair share allocations.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -198,6 +199,36 @@ def _extract_notebook_error(stderr: str) -> str | None:
     return None
 
 
+def _subprocess_env() -> dict[str, str]:
+    """Return an environment that resolves paths exactly as this process does.
+
+    The build runs in a subprocess, so a ``data_dir`` / ``output_dir`` passed
+    in Python reaches it only if it is exported. Without this the subprocess
+    falls back to the surrounding checkout, and a caller that asked for
+    directories elsewhere gets its tree built in one place and verified in
+    another — a missing-files error that names neither directory.
+
+    Resolution is deliberate rather than a straight copy of ``os.environ``:
+    :func:`paths.data_dir` and :func:`paths.output_dir` apply the argument,
+    the per-process cache, the environment and the checkout in priority order,
+    so exporting their answers keeps parent and child in agreement whichever
+    level won.
+
+    Returns
+    -------
+    dict[str, str]
+        The current environment plus ``FAIR_SHARES_DATA_DIR`` and
+        ``FAIR_SHARES_OUTPUT_DIR``.
+    """
+    from fair_shares.library import paths
+
+    return {
+        **os.environ,
+        DATA_DIR_ENV: str(paths.data_dir()),
+        OUTPUT_DIR_ENV: str(paths.output_dir()),
+    }
+
+
 def execute_snakemake_setup(
     command: list[str], project_root: Path, timeout: int = 600
 ) -> tuple[str, str]:
@@ -247,6 +278,7 @@ def execute_snakemake_setup(
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
+            env=_subprocess_env(),
         )
         if result.returncode != 0:
             # Try to extract the notebook error first

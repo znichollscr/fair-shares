@@ -550,11 +550,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pyprojroot import here
 
+from fair_shares.library import paths as fs_paths
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.notebook_helpers import (
     load_allocation_data,
     run_all_allocations,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import setup_data
 from fair_shares.library.utils.data.config import (
     is_composite_category,
@@ -627,7 +629,7 @@ for category, allocations in CATEGORY_ALLOCATIONS.items():
                 f"No scenario rows match {RCB_ANCHOR} for {cat_key}"
             )
 
-    output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
+    output_dir = fs_paths.output_dir() / source_id / "allocations" / allocation_folder
 
     data_context = {
         "source-id": source_id,
@@ -888,7 +890,7 @@ for category, reg in run_registry.items():
 remaining_all = pd.concat(remaining_all, ignore_index=True)
 combined_from_year = int(remaining_all["remaining-from-year"].min())
 combined_path = (
-    project_root / "output" / f"601_remaining_budgets_from_{combined_from_year}.csv"
+    resolve_source_path("output") / f"601_remaining_budgets_from_{combined_from_year}.csv"
 )
 remaining_all.to_csv(combined_path, index=False)
 print(f"\ncombined: {len(remaining_all)} rows -> {combined_path}")

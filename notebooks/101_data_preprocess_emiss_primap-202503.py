@@ -37,6 +37,7 @@ from fair_shares.library.exceptions import (
     DataLoadingError,
     DataProcessingError,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     convert_unit_robust,
@@ -128,7 +129,7 @@ emissions_data_parameters = emissions_config["data_parameters"]
 
 # Construct intermediate_dir from output directory structure
 intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
-intermediate_dir = project_root / intermediate_dir_str
+intermediate_dir = resolve_source_path(intermediate_dir_str)
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Unpack required nested parameters
@@ -213,7 +214,7 @@ print(f"Intermediate directory: {intermediate_dir_str}")
 
 # %%
 print(f"Opening emissions file: {emissions_path}")
-ds = xr.open_dataset(project_root / emissions_path)
+ds = xr.open_dataset(resolve_source_path(emissions_path))
 
 # List all variables in the dataset for reference
 print("Available variables in dataset:", list(ds.variables.keys()))
