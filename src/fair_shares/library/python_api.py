@@ -568,7 +568,10 @@ def _sum_frames(frames: list[pd.DataFrame]) -> pd.DataFrame:
     for frame in frames[1:]:
         total = total.add(frame[year_cols(frame)])
     total.insert(0, "unit", unit)
-    return total
+    # Defragmented before returning: the year columns were added one at a time
+    # by the additions above, and pandas warns whenever such a frame is later
+    # reindexed. The copy is cheap next to the arithmetic that produced it.
+    return total.copy()
 
 
 def _coverage_frame(processed_dir: Path, parts: tuple[str, ...]) -> pd.DataFrame:
