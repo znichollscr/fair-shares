@@ -189,7 +189,7 @@ population_historical_world_key = population_data_parameters.get("historical_wor
 population_projected_world_key = population_data_parameters.get("projected_world_key")
 
 # Get region mapping
-region_mapping = pd.read_csv(resolve_source_path(config)["general"]["region_mapping"]["path"])
+region_mapping = pd.read_csv(resolve_source_path(config["general"]["region_mapping"]["path"]))
 
 # %%
 # Construct source-specific intermediate dirs from active sources and data
