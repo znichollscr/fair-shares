@@ -557,7 +557,12 @@ def process_rcbs(
                 "source": source_key,
                 "scenario": scenario,
                 "climate-assessment": climate_assessment,
-                "quantile": quantile,
+                # Numeric, not the string `parse_rcb_scenario` returns. Every
+                # consumer has only ever seen a float here, because the frame
+                # used to reach them via a CSV round-trip that did the
+                # conversion; building it in memory made the string visible for
+                # the first time and anchor filters stopped matching.
+                "quantile": float(quantile),
                 "emission-category": emission_category,
                 "baseline_year": baseline_year,
                 "rcb_original_value": result["rcb_original_value"],

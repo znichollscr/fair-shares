@@ -35,9 +35,22 @@ See :mod:`fair_shares.api.sources` for how to describe inputs,
 
 from __future__ import annotations
 
+from fair_shares.api.allocate import (
+    AllocationRequest,
+    AllocationResult,
+    ClimateTarget,
+    allocate,
+)
+from fair_shares.api.preprocess import ProcessedData, preprocess
 from fair_shares.api.sources import Inputs, SourceSelection
 
 __all__ = [
+    "AllocationRequest",
+    "AllocationResult",
+    "ClimateTarget",
     "Inputs",
+    "ProcessedData",
     "SourceSelection",
+    "allocate",
+    "preprocess",
 ]
