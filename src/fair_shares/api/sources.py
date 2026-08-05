@@ -194,6 +194,38 @@ class Inputs:
             )
         return self._resolve(str(relative))
 
+    def files(self) -> dict[str, Path]:
+        """Return every input file this run would read.
+
+        The point of this is provenance: a caller that caches results needs to
+        know when the inputs behind them have changed, and with nothing written
+        to an intermediate tree there is no built directory to inspect instead.
+        Naming the raw files is also the more honest question -- an intermediate
+        tree is a consequence of the inputs, not the thing a result depends on.
+
+        Returns
+        -------
+        dict
+            Keyed ``"<kind>"`` or ``"<kind>.<path-field>"`` for sources with
+            several files, in a stable order. Only selected sources appear.
+        """
+        found: dict[str, Path] = {}
+        for kind, name in self.sources.as_dict().items():
+            if name is None:
+                continue
+            entry = self._entry(kind)
+            fields = sorted(k for k in entry if str(k).startswith("path"))
+            for field_name in fields:
+                key = kind if fields == ["path"] else f"{kind}.{field_name}"
+                found[key] = self.path(kind, field_name)
+
+        # The region mapping is read by every run and belongs to none of the
+        # selected sources, so it would otherwise go unrecorded.
+        mapping = self.catalogue.get("general", {}).get("region_mapping", {})
+        if mapping.get("path"):
+            found["general.region_mapping"] = self._resolve(str(mapping["path"]))
+        return dict(sorted(found.items()))
+
     def _entry(self, kind: str) -> dict[str, Any]:
         name = getattr(self.sources, kind, None)
         if name is None:
