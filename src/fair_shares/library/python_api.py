@@ -167,7 +167,27 @@ _PAIR_KEYS = [
 ]
 
 
-def _country_emissions(processed_dir: Path, part: str) -> pd.DataFrame:
+def country_emissions(processed_dir: Path, part: str) -> pd.DataFrame:
+    """Observed emissions for one part, as the pipeline processed them.
+
+    Public because it is the observed record that :func:`compute_remaining_budgets`
+    nets against, and a consumer that builds anything anchored to the same
+    record -- a pathway starting from the last observed value, say -- must read
+    the *same* file rather than reconstruct the path and risk drifting from it.
+
+    Parameters
+    ----------
+    processed_dir
+        The run's processed data directory.
+    part
+        Emission category, e.g. ``"co2-ffi"``.
+
+    Returns
+    -------
+    :
+        Wide frame: ``iso3c``, ``unit``, ``emission-category``, then one column
+        per year.
+    """
     return pd.read_csv(processed_dir / f"country_emissions_{part}_timeseries.csv")
 
 
@@ -179,7 +199,7 @@ def _cumulative_actuals(
     From ``start_year`` through the last observed data year (inclusive).
     Observed data only -- no extrapolation.
     """
-    df = _country_emissions(processed_dir, part)
+    df = country_emissions(processed_dir, part)
     year_cols = sorted(c for c in df.columns if c.isdigit())
     first_year, last_observed = int(year_cols[0]), int(year_cols[-1])
     if start_year < first_year:
@@ -345,7 +365,7 @@ def distribute_remaining_pathways(
     start_year = int(rem["remaining-from-year"].iloc[0])
     last_observed = str(int(rem["netting-end-year"].iloc[0]))
 
-    emiss = _country_emissions(processed_dir, part)
+    emiss = country_emissions(processed_dir, part)
     base = pd.Series(emiss[last_observed].values, index=emiss["iso3c"].values)
     n_floored = int((base <= 0).sum())
     if n_floored:
@@ -503,7 +523,7 @@ def distribute_remaining_pathways(
 
 
 def _coverage_frame(processed_dir: Path, parts: tuple[str, ...]) -> pd.DataFrame:
-    frames = [_country_emissions(processed_dir, p).set_index("iso3c") for p in parts]
+    frames = [country_emissions(processed_dir, p).set_index("iso3c") for p in parts]
     year_cols = lambda f: [c for c in f.columns if str(c).isdigit()]  # noqa: E731
     unit = frames[0]["unit"].iloc[0] if "unit" in frames[0] else None
     total = frames[0][year_cols(frames[0])]
