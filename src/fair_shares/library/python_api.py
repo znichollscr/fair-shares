@@ -192,15 +192,15 @@ def country_emissions(processed_dir: Path, part: str) -> pd.DataFrame:
 
 
 def _cumulative_actuals(
-    processed_dir: Path, part: str, start_year: int
+    observed: pd.DataFrame, part: str, start_year: int
 ) -> tuple[pd.Series, int]:
     """Actual emissions per country over the netting window, plus its last year.
 
     From ``start_year`` through the last observed data year (inclusive).
     Observed data only -- no extrapolation.
     """
-    df = country_emissions(processed_dir, part)
-    year_cols = sorted(c for c in df.columns if c.isdigit())
+    df = observed
+    year_cols = sorted(c for c in df.columns if str(c).isdigit())
     first_year, last_observed = int(year_cols[0]), int(year_cols[-1])
     if start_year < first_year:
         raise ValueError(
@@ -211,10 +211,46 @@ def _cumulative_actuals(
     return pd.Series(consumed.values, index=df["iso3c"].values), last_observed
 
 
+def _observed_for(
+    part: str,
+    processed_dir: Path | None,
+    observed: dict[str, pd.DataFrame] | None,
+) -> pd.DataFrame:
+    """Return one part's observed emissions, from memory or from disk.
+
+    Raises
+    ------
+    ValueError
+        If neither source was given, or the in-memory mapping lacks the part.
+    """
+    if observed is not None:
+        if part not in observed:
+            raise ValueError(
+                f"no observed emissions supplied for part {part!r}. "
+                f"Have: {sorted(observed)}"
+            )
+        frame = observed[part]
+        return frame.reset_index() if "iso3c" not in frame.columns else frame
+    if processed_dir is None:
+        raise ValueError(
+            "compute_remaining_budgets needs either processed_dir or observed."
+        )
+    return country_emissions(processed_dir, part)
+
+
 def compute_remaining_budgets(
-    category: str, allocations_absolute: pd.DataFrame, processed_dir: Path
+    category: str,
+    allocations_absolute: pd.DataFrame,
+    processed_dir: Path | None = None,
+    observed: dict[str, pd.DataFrame] | None = None,
 ) -> pd.DataFrame:
     """Remaining budget per country after netting observed emissions (§5).
+
+    Pass either ``processed_dir``, to read the observed record from a built
+    tree, or ``observed`` -- a mapping of emission-category part to its
+    observed frame -- to net against data already in memory. The second form
+    exists so a caller that has just computed those frames does not have to
+    write them out and read them back to use them.
 
     Budget parts: remaining = allocated total minus actual consumption from the
     allocation year through the last observed year. Non-CO2 pathway parts:
@@ -242,7 +278,9 @@ def compute_remaining_budgets(
             sub["preserve"] = sub["preserve-first-allocation-year-shares"].astype(bool)
 
         for ay, chunk in sub.groupby("year"):
-            consumed, last_observed = _cumulative_actuals(processed_dir, part, int(ay))
+            consumed, last_observed = _cumulative_actuals(
+                _observed_for(part, processed_dir, observed), part, int(ay)
+            )
             idx = chunk.index
             sub.loc[idx, "consumed-actuals"] = chunk["iso3c"].map(consumed).values
             sub.loc[idx, "netting-end-year"] = last_observed
@@ -522,8 +560,8 @@ def distribute_remaining_pathways(
 # ---------------------------------------------------------------------------
 
 
-def _coverage_frame(processed_dir: Path, parts: tuple[str, ...]) -> pd.DataFrame:
-    frames = [country_emissions(processed_dir, p).set_index("iso3c") for p in parts]
+def _sum_frames(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    """Sum several ``iso3c``-indexed frames over their year columns."""
     year_cols = lambda f: [c for c in f.columns if str(c).isdigit()]  # noqa: E731
     unit = frames[0]["unit"].iloc[0] if "unit" in frames[0] else None
     total = frames[0][year_cols(frames[0])]
@@ -531,6 +569,51 @@ def _coverage_frame(processed_dir: Path, parts: tuple[str, ...]) -> pd.DataFrame
         total = total.add(frame[year_cols(frame)])
     total.insert(0, "unit", unit)
     return total
+
+
+def _coverage_frame(processed_dir: Path, parts: tuple[str, ...]) -> pd.DataFrame:
+    return _sum_frames(
+        [country_emissions(processed_dir, p).set_index("iso3c") for p in parts]
+    )
+
+
+def build_history_from_frames(
+    category: str, observed: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
+    """Observed emissions for every coverage a category needs, from memory.
+
+    The in-memory twin of :func:`build_history`, for callers that already hold
+    the observed frames.
+
+    Parameters
+    ----------
+    category
+        The emission category.
+    observed
+        Part to its observed frame, indexed by ``iso3c`` or carrying it as a
+        column.
+
+    Returns
+    -------
+    :
+        One frame with a (coverage, unit, iso3c) MultiIndex and year columns.
+    """
+    pieces = []
+    for coverage, parts in COVERAGE_PARTS[category].items():
+        frames = []
+        for part in parts:
+            frame = observed[part]
+            if "iso3c" in frame.columns:
+                frame = frame.set_index("iso3c")
+            else:
+                extra = [n for n in frame.index.names if n != "iso3c"]
+                frame = frame.reset_index(level=extra) if extra else frame
+            frames.append(frame)
+        combined = _sum_frames(frames)
+        combined = combined.reset_index()
+        combined.insert(0, "coverage", coverage)
+        pieces.append(combined.set_index(["coverage", "unit", "iso3c"]))
+    return pd.concat(pieces)
 
 
 def build_history(category: str, processed_dir: Path) -> pd.DataFrame:
