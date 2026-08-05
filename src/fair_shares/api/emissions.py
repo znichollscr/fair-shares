@@ -130,9 +130,7 @@ def load_emissions(
         )
 
     scenario = parameters.get("scenario")
-    logger.info(
-        "reading %s (%s) for %d categories", path.name, scenario, len(to_read)
-    )
+    logger.info("reading %s (%s) for %d categories", path.name, scenario, len(to_read))
 
     frames: dict[str, pd.DataFrame] = {}
     with xr.open_dataset(path) as dataset:
