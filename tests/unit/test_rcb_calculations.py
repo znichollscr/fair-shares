@@ -5,6 +5,8 @@ Tests for RCB (Remaining Carbon Budget) calculation functions.
 
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 import pytest
 
@@ -131,33 +133,37 @@ class TestCalculateBudgetFromRCB:
         expected = 500.0 - 30.0
         assert result == expected
 
-    def test_verbose_output(self, world_scenario_emissions_ts, capsys):
-        """Test that verbose output is produced when verbose=True."""
+    def test_verbose_output(self, world_scenario_emissions_ts, caplog):
+        """Test that verbose output is produced when verbose=True.
+
+        Reported through :mod:`logging` rather than stdout, so a caller can
+        silence it — hence ``caplog`` rather than ``capsys``.
+        """
         rcb_value = 500.0
+        caplog.set_level(logging.INFO, logger="fair_shares")
 
         # Test verbose output for allocation year 2020
         calculate_budget_from_rcb(
             rcb_value, 2020, world_scenario_emissions_ts, verbose=True
         )
-        captured = capsys.readouterr()
-        assert "Allocation year 2020 = 2020" in captured.out
-        assert "RCB 500.0 Mt CO2" in captured.out
+        assert "Allocation year 2020 = 2020" in caplog.text
+        assert "RCB 500.0 Mt CO2" in caplog.text
 
         # Test verbose output for allocation year before 2020
+        caplog.clear()
         calculate_budget_from_rcb(
             rcb_value, 1990, world_scenario_emissions_ts, verbose=True
         )
-        captured = capsys.readouterr()
-        assert "Allocation year 1990 < 2020" in captured.out
-        assert "Historical" in captured.out
+        assert "Allocation year 1990 < 2020" in caplog.text
+        assert "Historical" in caplog.text
 
         # Test verbose output for allocation year after 2020
+        caplog.clear()
         calculate_budget_from_rcb(
             rcb_value, 2025, world_scenario_emissions_ts, verbose=True
         )
-        captured = capsys.readouterr()
-        assert "Allocation year 2025 > 2020" in captured.out
-        assert "Used" in captured.out
+        assert "Allocation year 2025 > 2020" in caplog.text
+        assert "Used" in caplog.text
 
     def test_with_variable_emissions(self):
         """Test with variable emissions to ensure correct summation."""

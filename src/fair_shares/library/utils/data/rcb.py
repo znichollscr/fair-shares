@@ -7,6 +7,7 @@ different baseline years with adjustments for bunkers and LULUCF.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -16,6 +17,9 @@ from fair_shares.library.utils.units import get_default_unit_registry
 
 if TYPE_CHECKING:
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_rcb_scenario(scenario_string: str) -> tuple[str, str]:
@@ -123,7 +127,7 @@ def calculate_budget_from_rcb(
         total_budget = round(historical_emissions + rcb_value)
 
         if verbose:
-            print(
+            logger.info(
                 f"    Allocation year {allocation_year} < 2020: "
                 f"Historical {historical_emissions:.1f} + RCB {rcb_value:.1f} "
                 f"= {total_budget:.1f} Mt CO2"
@@ -134,7 +138,7 @@ def calculate_budget_from_rcb(
         total_budget = round(rcb_value)
 
         if verbose:
-            print(
+            logger.info(
                 f"    Allocation year {allocation_year} = 2020: "
                 f"RCB {rcb_value:.1f} Mt CO2"
             )
@@ -157,7 +161,7 @@ def calculate_budget_from_rcb(
         total_budget = round(rcb_value - emissions_used)
 
         if verbose:
-            print(
+            logger.info(
                 f"    Allocation year {allocation_year} > 2020: "
                 f"RCB {rcb_value:.1f} - Used {emissions_used:.1f} "
                 f"= {total_budget:.1f} Mt CO2"
@@ -330,17 +334,17 @@ def process_rcb_to_2020_baseline(
         rebase_total_mt = rebase_fossil_mt + rebase_lulucf_mt
 
         if verbose:
-            print(
+            logger.info(
                 f"    {source_name} {scenario}: "
                 f"Baseline {rcb_baseline_year} > {target_baseline_year}"
             )
-            print(
+            logger.info(
                 f"      Adding CO2-FFI emissions "
                 f"({target_baseline_year}-{rcb_baseline_year - 1}): "
                 f"+{rebase_fossil_mt:.1f} Mt * CO2e"
             )
             if emission_category == "co2":
-                print(
+                logger.info(
                     f"      Adding actual BM LULUCF emissions "
                     f"({target_baseline_year}-{rcb_baseline_year - 1}): "
                     f"+{rebase_lulucf_mt:.1f} Mt * CO2e"
@@ -349,11 +353,11 @@ def process_rcb_to_2020_baseline(
     else:
         # Already at target baseline (rcb_baseline_year == 2020)
         if verbose:
-            print(
+            logger.info(
                 f"    {source_name} {scenario}: "
                 f"Baseline {rcb_baseline_year} = {target_baseline_year}"
             )
-            print("      No emissions adjustment needed")
+            logger.info("      No emissions adjustment needed")
 
     # Apply baseline rebase
     rcb_adjusted_mt = rcb_original_mt + rebase_total_mt
@@ -385,21 +389,21 @@ def process_rcb_to_2020_baseline(
 
     if verbose:
         if bunkers_deduction_mt > 0:
-            print(
+            logger.info(
                 f"      Bunkers deduction (2020-2100): "
                 f"{deduction_bunkers_mt:.1f} Mt * CO2e"
             )
         if deduction_lulucf_future_mt != 0:
-            print(
+            logger.info(
                 f"      LULUCF future deduction (2020-NZ): "
                 f"{deduction_lulucf_future_mt:.1f} Mt * CO2e"
             )
         if correction_lulucf_nghgi_mt != 0:
-            print(
+            logger.info(
                 f"      LULUCF NGHGI correction: "
                 f"{correction_lulucf_nghgi_mt:.1f} Mt * CO2e"
             )
-        print(
+        logger.info(
             f"      Final RCB ({target_baseline_year} baseline): "
             f"{rcb_2020_nghgi_mt:.1f} Mt * CO2e"
         )

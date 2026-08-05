@@ -7,6 +7,7 @@ generating human-readable documentation of allocation results.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,8 @@ import pandas as pd
 
 from fair_shares.library.exceptions import DataLoadingError
 from fair_shares.library.utils.dataframes import get_year_columns
+
+logger = logging.getLogger(__name__)
 
 
 def generate_parquet_readme(
@@ -255,11 +258,11 @@ def generate_readme(output_dir: Path, data_context: dict | None = None) -> None:
     parquet_files = list(output_dir.glob("allocations_*.parquet"))
 
     if not parquet_files:
-        print("No parquet files found for README generation")
+        logger.info("No parquet files found for README generation")
         return
 
     parquet_names = [f.name for f in parquet_files]
-    print(f"Found {len(parquet_files)} parquet files: {parquet_names}")
+    logger.info(f"Found {len(parquet_files)} parquet files: {parquet_names}")
 
     # Generate README for each parquet file
     for parquet_file in parquet_files:
@@ -272,7 +275,7 @@ def generate_readme(output_dir: Path, data_context: dict | None = None) -> None:
             elif "absolute" in parquet_file.name:
                 readme_name = "README_absolute.txt"
             else:
-                print(
+                logger.info(
                     f"Skipping {parquet_file.name} - "
                     "cannot determine if relative or absolute"
                 )
@@ -286,10 +289,10 @@ def generate_readme(output_dir: Path, data_context: dict | None = None) -> None:
                 run_metadata=data_context or {},
                 readme_filename=readme_name,
             )
-            print(f"Generated {readme_name}")
+            logger.info(f"Generated {readme_name}")
 
         except Exception as e:
-            print(f"Error generating README for {parquet_file.name}: {e}")
+            logger.info(f"Error generating README for {parquet_file.name}: {e}")
 
 
 def create_param_manifest(
@@ -312,7 +315,7 @@ def create_param_manifest(
         Directory where param_manifest.csv will be saved
     """
     if not param_manifest_rows:
-        print("Warning: No parameter manifest rows to save")
+        logger.info("Warning: No parameter manifest rows to save")
         return
 
     # Convert the list of dictionaries to DataFrame
@@ -334,7 +337,7 @@ def create_param_manifest(
     # Save to CSV
     manifest_path = output_dir / "param_manifest.csv"
     manifest_df.to_csv(manifest_path, index=False)
-    print(
+    logger.info(
         f"Saved parameter manifest with {len(manifest_df)} rows to "
         f"{manifest_path.name}"
     )

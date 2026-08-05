@@ -8,6 +8,7 @@ generating source identifiers.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -33,6 +34,9 @@ COMPOSITE_CATEGORIES: frozenset[str] = frozenset({"all-ghg", "all-ghg-ex-co2-lul
 
 # CO2 categories (both use budget/RCB-based allocations; non-CO2 uses scenario pathways).
 ALL_GHG_CO2_CATEGORIES: tuple[str, str] = ("co2-ffi", "co2")
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_composite_category(emission_category: str) -> bool:
@@ -146,6 +150,7 @@ def build_source_id(
     target: str,
     emission_category: str,
     lulucf: str | None = None,
+    bunkers: str | None = None,
     rcb_generator: str | None = None,
 ) -> str:
     """Construct standardized source identifier used for output directories.
@@ -176,6 +181,9 @@ def build_source_id(
         the packaged ``data_sources_unified.yaml`` (``src/fair_shares/conf/data_sources/``).
     lulucf : str | None, optional
         LULUCF source identifier (e.g., "melo-2026")
+    bunkers : str | None, optional
+        Bunker fuel CO2 source identifier (e.g., "gcb-2024"). Included in the
+        id for budget targets only, which are the ones that deduct it.
     rcb_generator : str | None, optional
         RCB pathway generator name (only used for target="rcb-pathways")
 
@@ -200,11 +208,35 @@ def build_source_id(
     # ``_needs_lulucf``.
     _LULUCF_DEPENDENT = {"co2", "co2-lulucf", "all-ghg"}
 
+    # Targets that deduct bunker CO2 from the global RCB. Mirrors Snakefile's
+    # `_needs_bunkers = _allocation_mode != "pathway"`.
+    _BUNKERS_DEPENDENT_TARGETS = {"rcbs", "rcb-pathways"}
+
     parts = [emissions, gdp, population, gini]
     if lulucf and emission_category in _LULUCF_DEPENDENT:
         parts.append(lulucf)
+    # Bunkers only affects budget targets: they deduct bunker CO2 from the
+    # global RCB, whereas pathway targets never touch it. Kept in sync with
+    # Snakefile's ``_needs_bunkers``. Omitted when it cannot matter, so a
+    # pathway run's directory name does not change over an input it ignores.
+    if bunkers and target in _BUNKERS_DEPENDENT_TARGETS:
+        parts.append(bunkers)
     parts.extend([target_with_generator, emission_category])
     return "_".join(parts)
+
+
+def _default_bunkers_source(full_config: dict[str, Any]) -> str | None:
+    """Return the bunkers source to use when the caller named none.
+
+    Returns
+    -------
+    str | None
+        The sole configured source when there is exactly one, else ``None`` —
+        because once there is a choice, silently picking one would be the
+        hidden default this whole change exists to remove.
+    """
+    available = list(full_config.get("bunkers", {}))
+    return available[0] if len(available) == 1 else None
 
 
 def build_data_config(
@@ -410,6 +442,7 @@ def build_data_config(
         "population": full_config.get("population", {}),
         "gini": full_config.get("gini", {}),
         "lulucf": full_config.get("lulucf", {}),
+        "bunkers": full_config.get("bunkers", {}),
         "scenarios": filtered_scenarios,
         "targets": selected_target,
         "general": full_config.get("general", {}),
@@ -420,6 +453,13 @@ def build_data_config(
         "active_population_source": active_sources.get("population"),
         "active_gini_source": active_sources.get("gini"),
         "active_lulucf_source": active_sources.get("lulucf"),
+        # Defaulted rather than required: every budget run needs a bunkers
+        # source, and only one exists, so making callers name it would break
+        # every existing caller to say something they have no choice about.
+        # Naming it explicitly still works and still changes the source id.
+        "active_bunkers_source": active_sources.get(
+            "bunkers", _default_bunkers_source(full_config)
+        ),
         "active_target_source": target,
         "active_scenario_source": scenario_source_key,
         "rcb_generator": rcb_generator,  # Will be None for non-rcb-pathways targets
@@ -434,6 +474,11 @@ def build_data_config(
         population=active_sources.get("population"),
         gini=active_sources.get("gini"),
         lulucf=active_sources.get("lulucf"),
+        # Taken from the validated config rather than the raw mapping, so the
+        # defaulting above is reflected in the id. Otherwise a caller that did
+        # not name a bunkers source would get a run that used one but an id
+        # that did not say so.
+        bunkers=validated_config.active_bunkers_source,
         target=target,
         emission_category=emission_category,
         rcb_generator=rcb_generator,
@@ -575,8 +620,8 @@ def validate_data_source_config(
                 active_sources=active_sources,
             )
             if verbose:
-                print("[OK] Configuration loaded successfully")
-                print(f"  Source ID: {source_id}")
+                logger.info("[OK] Configuration loaded successfully")
+                logger.info(f"  Source ID: {source_id}")
         except (DataLoadingError, ConfigurationError, ValueError) as e:
             issues.append(str(e))
 
@@ -601,15 +646,17 @@ def validate_data_source_config(
 
     # Print summary
     if verbose and not issues:
-        print(
+        logger.info(
             f"[OK] Emission category '{emission_category}' is valid for target '{target}'"
         )
-        print(f"[OK] Target type: {target_type}")
+        logger.info(f"[OK] Target type: {target_type}")
         if target_type == "composite":
-            print(
+            logger.info(
                 f"[OK] Composite run: {get_final_categories(target, emission_category)}"
             )
-        print(f"[OK] Compatible approaches: {len(compatible_approaches)} available")
+        logger.info(
+            f"[OK] Compatible approaches: {len(compatible_approaches)} available"
+        )
 
     return {
         "valid": len(issues) == 0,

@@ -48,6 +48,7 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
+active_bunkers_source = None
 active_scenario_source = None
 source_id = None
 
@@ -56,7 +57,7 @@ if emission_category is not None:
     # Running via Papermill — source_id is injected by the Snakefile
     print("Running via Papermill")
 
-    config_path = here() / f"output/{source_id}/config.yaml"
+    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:

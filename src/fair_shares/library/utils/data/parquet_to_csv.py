@@ -9,11 +9,14 @@ summarized configuration strings.
 from __future__ import annotations
 
 import argparse
+import logging
 from pathlib import Path
 
 import pandas as pd
 
 from fair_shares.library.exceptions import DataProcessingError
+
+logger = logging.getLogger(__name__)
 
 
 def build_approach_short_column(
@@ -494,9 +497,9 @@ def main():
             output_path=args.output,
             config_prefixes=config_prefixes,
         )
-        print(f"Successfully created wide CSV: {output_path}")
+        logger.info(f"Successfully created wide CSV: {output_path}")
     except Exception as e:
-        print(f"Error: {e}")
+        logger.info(f"Error: {e}")
         raise
 
 

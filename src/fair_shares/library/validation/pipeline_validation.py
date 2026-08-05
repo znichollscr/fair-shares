@@ -5,11 +5,15 @@ Pipeline validation functions for the fair-shares library.
 
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 
 from fair_shares.library.error_messages import format_error
 from fair_shares.library.exceptions import DataProcessingError
 from fair_shares.library.utils.dataframes import TimeseriesDataFrame, get_year_columns
+
+logger = logging.getLogger(__name__)
 
 
 def validate_index_structure(
@@ -120,15 +124,15 @@ def validate_stationary_dataframe(
 
     unexpected_cols = [col for col in df.columns if col not in expected_columns]
     if unexpected_cols and verbose:
-        print(
+        logger.info(
             f"Warning: {dataset_name_for_error_msg} has unexpected cols: "
             f"{unexpected_cols}"
         )
 
     if verbose:
-        print(f"{dataset_name_for_error_msg} stationary structure validated")
-        print(f"  Index: {df.index.name}")
-        print(f"  Columns: {list(df.columns)}")
+        logger.info(f"{dataset_name_for_error_msg} stationary structure validated")
+        logger.info(f"  Index: {df.index.name}")
+        logger.info(f"  Columns: {list(df.columns)}")
 
 
 def validate_year_in_data(
@@ -278,7 +282,7 @@ def validate_timeseries_values(
     coverage = ((total_values - missing_values) / total_values) * 100
 
     if verbose:
-        print(
+        logger.info(
             f"  Data coverage: {coverage:.1f}% ({total_values - missing_values}"
             f"/{total_values} values)"
         )
@@ -328,8 +332,12 @@ def validate_incremental_annual_timeseries(
         )
 
     if verbose:
-        print(f"{dataset_name_for_error_msg} incremental annual timeseries validated")
-        print(f"  Range: {min(year_cols)} - {max(year_cols)} ({len(year_cols)} years)")
+        logger.info(
+            f"{dataset_name_for_error_msg} incremental annual timeseries validated"
+        )
+        logger.info(
+            f"  Range: {min(year_cols)} - {max(year_cols)} ({len(year_cols)} years)"
+        )
 
 
 def validate_dataset_totals(
@@ -361,7 +369,7 @@ def validate_dataset_totals(
     if isinstance(world_series, pd.DataFrame):
         if len(world_series) != 1:
             if verbose:
-                print(
+                logger.info(
                     f"Warning: Expected a single world row for "
                     f"{dataset_name_for_error_msg}, got {len(world_series)} rows"
                 )
@@ -377,7 +385,9 @@ def validate_dataset_totals(
 
     if not common_years:
         if verbose:
-            print(f"Warning: No matching year columns for {dataset_name_for_error_msg}")
+            logger.info(
+                f"Warning: No matching year columns for {dataset_name_for_error_msg}"
+            )
         return False
 
     # Prepare aligned views using string-based year labels
@@ -398,25 +408,27 @@ def validate_dataset_totals(
 
         if max_diff > 1:  # Allow for rounding differences
             if verbose:
-                print(
+                logger.info(
                     f"WARNING: {dataset_name_for_error_msg} analysis + ROW"
                     f" != world total!"
                 )
-                print(f"  Maximum difference: {max_diff:.2f}")
+                logger.info(f"  Maximum difference: {max_diff:.2f}")
                 large_diffs = differences[differences > 1]
                 if len(large_diffs) > 0:
-                    print(f"  Years with large diff: {list(large_diffs.index[:5])}")
+                    logger.info(
+                        f"  Years with large diff: {list(large_diffs.index[:5])}"
+                    )
             return False
         else:
             if verbose:
-                print(
+                logger.info(
                     f"{dataset_name_for_error_msg}: analysis + ROW = world total "
                     f"(max diff: {max_diff:.2f})"
                 )
             return True
     else:
         if verbose:
-            print(f"No valid data for {dataset_name_for_error_msg} validation")
+            logger.info(f"No valid data for {dataset_name_for_error_msg} validation")
         return False
 
 
@@ -443,7 +455,7 @@ def validate_all_datasets_totals(
     results = {}
 
     if verbose:
-        print("Validating that analysis datasets match world totals...")
+        logger.info("Validating that analysis datasets match world totals...")
 
     for dataset_name_for_error_msg in datasets_dict:
         if dataset_name_for_error_msg in world_totals_dict:
@@ -456,7 +468,7 @@ def validate_all_datasets_totals(
             results[dataset_name_for_error_msg] = result
         else:
             if verbose:
-                print(
+                logger.info(
                     f"Warning: No world totals found for {dataset_name_for_error_msg}"
                 )
             results[dataset_name_for_error_msg] = False
@@ -464,6 +476,6 @@ def validate_all_datasets_totals(
     if verbose:
         passed = sum(results.values())
         total = len(results)
-        print(f"\nValidation complete: {passed}/{total} datasets passed")
+        logger.info(f"\nValidation complete: {passed}/{total} datasets passed")
 
     return results

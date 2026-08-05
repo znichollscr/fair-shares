@@ -6,6 +6,7 @@ Messages follow WHAT/CAUSE/FIX structure. See docs/science/ for conceptual found
 
 from __future__ import annotations
 
+import logging
 from difflib import get_close_matches
 
 ERROR_MESSAGES = {
@@ -22,8 +23,8 @@ LIKELY CAUSE:
 
 HOW TO FIX:
   Check your data source:
-  >>> print(f"Rows: {{len(df)}}, Columns: {{len(df.columns)}}")
-  >>> print(df.head())
+  >>> logger.info(f"Rows: {{len(df)}}, Columns: {{len(df.columns)}}")
+  >>> logger.info(df.head())
 
   For data pipeline issues, review preprocessing notebooks to ensure
   data is being loaded and filtered correctly.
@@ -174,7 +175,7 @@ HOW TO FIX:
   - Carbon sinks that need separate treatment
 
   Example check:
-  >>> print(df[df <= 0])
+  >>> logger.info(df[df <= 0])
 """,
     "allocation_year_future": """
 Allocation year {year} is beyond data coverage.
@@ -241,6 +242,9 @@ HOW TO FIX:
   >>> shares_normalized = shares / shares.sum()
 """,
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 def format_error(key: str, **kwargs) -> str:

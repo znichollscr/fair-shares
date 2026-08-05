@@ -8,6 +8,7 @@ calculation checks.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -17,6 +18,9 @@ from fair_shares.library.exceptions import AllocationError
 
 if TYPE_CHECKING:
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
+
+
+logger = logging.getLogger(__name__)
 
 
 def validate_weights(
@@ -161,7 +165,7 @@ def validate_emissions_data(
             f"  1. Check available categories in your emissions dataset\n"
             f"  2. Use a common category like 'co2-ffi' or 'all-ghg'\n"
             f"  3. Verify the data loaded correctly:\n"
-            f"     >>> print(emissions_df.index.get_level_values("
+            f"     >>> logger.info(emissions_df.index.get_level_values("
             f"'emission-category').unique())"
         )
     if group_level not in emissions_numeric.index.names:
@@ -209,7 +213,7 @@ def validate_country_data_present(
             "HOW TO FIX:\n"
             "  Load emissions data that includes individual countries:\n"
             "  >>> # Verify your data has country rows\n"
-            "  >>> print(emissions_df.index.get_level_values('iso3c').unique())\n"
+            "  >>> logger.info(emissions_df.index.get_level_values('iso3c').unique())\n"
             "  >>> # Should show: ['USA', 'CHN', 'IND', ...] not just ['World']"
         )
 
@@ -284,7 +288,7 @@ def validate_world_emissions_present(
             "  1. Verify world scenario contains the emission category\n"
             "  2. Check that year range matches country emissions\n"
             "  3. Ensure units are compatible:\n"
-            "     >>> print(world_scenario_emissions_ts.index.get_level_values("
+            "     >>> logger.info(world_scenario_emissions_ts.index.get_level_values("
             "'unit').unique())"
         )
 
@@ -455,6 +459,6 @@ def validate_world_weights_aligned(
             f"  Mismatch between country and world scenario year coverage.\n\n"
             f"HOW TO FIX:\n"
             f"  Ensure world scenario covers all years in country data:\n"
-            f"  >>> print(world_scenario_emissions_ts.columns)  "
+            f"  >>> logger.info(world_scenario_emissions_ts.columns)  "
             f"# Should include {missing}"
         )

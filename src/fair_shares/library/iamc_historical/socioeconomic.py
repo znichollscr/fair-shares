@@ -212,9 +212,7 @@ def _resolve_path(source: SourceLike, *, default: str) -> Path:
         return resolve_source_path(default)
     if isinstance(source, (str, Path)):
         return Path(source)
-    raise ConfigurationError(
-        f"Unsupported source type: {type(source).__name__}"
-    )
+    raise ConfigurationError(f"Unsupported source type: {type(source).__name__}")
 
 
 def _aggregate_and_label(
@@ -229,9 +227,9 @@ def _aggregate_and_label(
     # to get the regional total.
     agg = mapping.aggregate(wide, country_col="region")
     year_cols_present = [y for y in year_range if y in agg.columns]
-    summed = agg.groupby(
-        ["region", "variable", "unit"], as_index=False
-    )[year_cols_present].sum()
+    summed = agg.groupby(["region", "variable", "unit"], as_index=False)[
+        year_cols_present
+    ].sum()
     return summed.assign(model=model, scenario=scenario)
 
 

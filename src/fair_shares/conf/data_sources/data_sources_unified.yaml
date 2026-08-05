@@ -24,6 +24,20 @@ lulucf:
       iso3_column: "ISO3"
       year_column: "Year"
 
+# --- International bunker fuel CO2 -------------------------------------------
+# Subtracted from the global remaining carbon budget before country allocation,
+# so the choice here moves every allocated total. A first-class source rather
+# than a path hardcoded in notebook 108, which is what it used to be: swapping
+# GCB vintages then changed every number with nothing in the source id to show
+# for it (v1.0 -> v1.01 moves the bunker column by ~1.8%).
+bunkers:
+  gcb-2024:
+    path: "data/bunkers/gcb-2024/National_Fossil_Carbon_Emissions_2024v1.0.xlsx"
+    data_parameters:
+      sheet_name: "Territorial Emissions"
+      header_row: 11
+      bunker_column: "Bunkers"
+
 # --- Historical emissions ---------------------------------------------------
 emissions:
   primap-202503:

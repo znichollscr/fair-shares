@@ -52,7 +52,6 @@ import warnings
 import matplotlib.pyplot as plt
 import pandas as pd
 import pyam
-from pyprojroot.here import here
 
 from fair_shares.library.iamc_historical import (
     COVERED_COMPONENTS,
@@ -60,6 +59,7 @@ from fair_shares.library.iamc_historical import (
     backfill_and_build_covered,
     backfill_population_gdp,
 )
+from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils.units import get_default_unit_registry
 
 # %% [markdown]
@@ -71,8 +71,8 @@ MODEL_NAME = "MESSAGEix-GLOBIOM 2.1-R12"
 START_YEAR = 1990       # back-fill to here
 GWP = "AR6GWP100"       # can switch to AR4GWP100 for the older common-definitions convention
 
-SCENARIO_FILE = here() / "data/scenarios/iamc_example/iamc_reporting_example.xlsx"
-OUTPUT_FILE = here() / "output/iamc/iamc_covered.xlsx"
+SCENARIO_FILE = resolve_source_path("data/scenarios/iamc_example/iamc_reporting_example.xlsx")
+OUTPUT_FILE = resolve_source_path("output/iamc/iamc_covered.xlsx")
 
 BLUE = "#005baa"
 PLOT_MAX_REGIONS = 6

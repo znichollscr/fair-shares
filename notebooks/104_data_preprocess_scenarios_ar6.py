@@ -71,6 +71,7 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
+active_bunkers_source = None
 active_scenario_source = None  # NEW
 source_id = None
 
@@ -90,11 +91,12 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
+            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = here() / f"output/{source_id}/config.yaml"
+    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:

@@ -1,5 +1,6 @@
 """Data coverage analysis for preprocessing."""
 
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -8,6 +9,8 @@ from fair_shares.library.utils import (
     get_complete_iso3c_timeseries,
     last_year_column,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def compute_analysis_countries(
@@ -158,32 +161,32 @@ def create_coverage_summary(
     countries_in_row = coverage_summary["in_row"].sum()
 
     # Print summary
-    print("\n=== Data Coverage Summary ===")
-    print(f"Total countries in region mapping: {total_countries}")
-    print(
+    logger.info("\n=== Data Coverage Summary ===")
+    logger.info(f"Total countries in region mapping: {total_countries}")
+    logger.info(
         f"Countries with emissions data: {countries_with_emissions} "
         f"({countries_with_emissions / total_countries * 100:.1f}%)"
     )
     gdp_label = f"GDP data ({gdp_variant})" if gdp_variant else "GDP data"
-    print(
+    logger.info(
         f"Countries with {gdp_label}: {countries_with_gdp} "
         f"({countries_with_gdp / total_countries * 100:.1f}%)"
     )
-    print(
+    logger.info(
         f"Countries with population data: {countries_with_population} "
         f"({countries_with_population / total_countries * 100:.1f}%)"
     )
-    print(
+    logger.info(
         f"Countries with Gini data: {countries_with_gini} "
         f"({countries_with_gini / total_countries * 100:.1f}%)"
     )
 
-    print("\n=== Countries composition in final dataset ===")
-    print(
+    logger.info("\n=== Countries composition in final dataset ===")
+    logger.info(
         f"Countries independently complete in final dataset: {countries_in_analysis} "
         f"({countries_in_analysis / total_countries * 100:.1f}%)"
     )
-    print(
+    logger.info(
         f"Countries clubbed in ROW in final dataset: {countries_in_row} "
         f"({countries_in_row / total_countries * 100:.1f}%)"
     )
@@ -191,14 +194,14 @@ def create_coverage_summary(
     imputed_countries = coverage_summary[coverage_summary["gini_imputed"]][
         "iso3c"
     ].tolist()
-    print(
+    logger.info(
         f"Countries in analysis with an imputed Gini: {len(imputed_countries)} "
         f"{sorted(imputed_countries)}"
     )
 
     # Show countries in ROW
     row_countries = coverage_summary[coverage_summary["in_row"]]["iso3c"].tolist()
-    print(f"\nCountries in ROW: {sorted(row_countries)}")
+    logger.info(f"\nCountries in ROW: {sorted(row_countries)}")
 
     # Show missing countries
     missing_emissions = coverage_summary[~coverage_summary["has_emissions"]][
@@ -210,16 +213,16 @@ def create_coverage_summary(
     ].tolist()
     missing_gini = coverage_summary[~coverage_summary["has_gini"]]["iso3c"].tolist()
 
-    print(f"\nCountries missing emissions data: {sorted(missing_emissions)}")
+    logger.info(f"\nCountries missing emissions data: {sorted(missing_emissions)}")
     gdp_missing_label = f"GDP data ({gdp_variant})" if gdp_variant else "GDP data"
-    print(f"Countries missing {gdp_missing_label}: {sorted(missing_gdp)}")
-    print(f"Countries missing population data: {sorted(missing_population)}")
-    print(f"Countries missing Gini data: {sorted(missing_gini)}")
+    logger.info(f"Countries missing {gdp_missing_label}: {sorted(missing_gdp)}")
+    logger.info(f"Countries missing population data: {sorted(missing_population)}")
+    logger.info(f"Countries missing Gini data: {sorted(missing_gini)}")
 
     # Save coverage summary
     output_dir.mkdir(parents=True, exist_ok=True)
     coverage_path = output_dir / "country_data_coverage_summary.csv"
     coverage_summary.to_csv(coverage_path, index=False)
-    print(f"\nData coverage summary saved to: {coverage_path}")
+    logger.info(f"\nData coverage summary saved to: {coverage_path}")
 
     return coverage_summary

@@ -14,12 +14,15 @@ Validation functions:
 
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 
 from fair_shares.library.error_messages import format_error
 from fair_shares.library.exceptions import AllocationError, DataProcessingError
-from fair_shares.library.utils.dataframes import get_year_columns
-from fair_shares.library.utils.dataframes import TimeseriesDataFrame
+from fair_shares.library.utils.dataframes import TimeseriesDataFrame, get_year_columns
+
+logger = logging.getLogger(__name__)
 
 
 def validate_not_empty(
@@ -167,15 +170,15 @@ def validate_stationary_dataframe(
 
     unexpected_cols = [col for col in df.columns if col not in expected_columns]
     if unexpected_cols and verbose:
-        print(
+        logger.info(
             f"Warning: {dataset_name_for_error_msg} has unexpected cols: "
             f"{unexpected_cols}"
         )
 
     if verbose:
-        print(f"{dataset_name_for_error_msg} stationary structure validated")
-        print(f"  Index: {df.index.name}")
-        print(f"  Columns: {list(df.columns)}")
+        logger.info(f"{dataset_name_for_error_msg} stationary structure validated")
+        logger.info(f"  Index: {df.index.name}")
+        logger.info(f"  Columns: {list(df.columns)}")
 
 
 def validate_year_in_data(
@@ -333,7 +336,7 @@ def validate_timeseries_values(
     coverage = ((total_values - missing_values) / total_values) * 100
 
     if verbose:
-        print(
+        logger.info(
             f"  Data coverage: {coverage:.1f}% ({total_values - missing_values}"
             f"/{total_values} values)"
         )
@@ -563,8 +566,12 @@ def validate_incremental_annual_timeseries(
         )
 
     if verbose:
-        print(f"{dataset_name_for_error_msg} incremental annual timeseries validated")
-        print(f"  Range: {min(year_cols)} - {max(year_cols)} ({len(year_cols)} years)")
+        logger.info(
+            f"{dataset_name_for_error_msg} incremental annual timeseries validated"
+        )
+        logger.info(
+            f"  Range: {min(year_cols)} - {max(year_cols)} ({len(year_cols)} years)"
+        )
 
 
 def validate_single_emission_category(
@@ -788,11 +795,11 @@ def validate_gini_data(
             )
 
         if verbose:
-            print(
+            logger.info(
                 f"{dataset_name_for_error_msg} coefficients validated: "
                 f"all values in range 0-1"
             )
-            print(f"  Range: {gini_min:.3f} - {gini_max:.3f}")
+            logger.info(f"  Range: {gini_min:.3f} - {gini_max:.3f}")
 
 
 def validate_no_nan_shares(

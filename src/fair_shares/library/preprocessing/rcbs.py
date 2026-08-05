@@ -21,6 +21,7 @@ as ``lulucf_shift_median_{scenario}.csv``.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -42,6 +43,8 @@ from fair_shares.library.utils.data.nghgi import (
     load_bunker_timeseries,
     load_world_co2_lulucf,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_template_path(
@@ -106,16 +109,16 @@ def _load_shared_timeseries(
             adjustments.lulucf_nghgi.path, source_id, data_dir, output_dir
         )
         if verbose:
-            print(f"    Loading NGHGI LULUCF from: {nghgi_path}")
+            logger.info(f"    Loading NGHGI LULUCF from: {nghgi_path}")
         nghgi_ts, splice_year = load_world_co2_lulucf(nghgi_path)
         if verbose:
-            print(f"    NGHGI splice year (from data): {splice_year}")
+            logger.info(f"    NGHGI splice year (from data): {splice_year}")
 
     bunker_path = _resolve_template_path(
         adjustments.bunkers.path, source_id, data_dir, output_dir
     )
     if verbose:
-        print(f"    Loading bunker timeseries from: {bunker_path}")
+        logger.info(f"    Loading bunker timeseries from: {bunker_path}")
     bunker_ts = load_bunker_timeseries(bunker_path)
 
     return nghgi_ts, bunker_ts, splice_year
@@ -158,9 +161,9 @@ def _load_rcb_scenario_adjustments(
         adjustments = yaml.safe_load(f)
 
     if verbose:
-        print("  Pre-computed RCB scenario adjustments loaded:")
+        logger.info("  Pre-computed RCB scenario adjustments loaded:")
         for cat, vals in sorted(adjustments.items()):
-            print(
+            logger.info(
                 f"    {cat}: NZ_med={vals['nz_year_median']}, "
                 f"BM_LULUCF={vals['bm_lulucf_cumulative_median']:.0f} Mt, "
                 f"gap={vals['convention_gap_median']:.0f} Mt, "
@@ -260,9 +263,7 @@ def _resolve_adjustment_scalars(
                 if str(y) in lulucf_shift_ts.columns
             ]
             if prefix_cols:
-                bm_lulucf_mt -= float(
-                    lulucf_shift_ts[prefix_cols].sum(axis=1).iloc[0]
-                )
+                bm_lulucf_mt -= float(lulucf_shift_ts[prefix_cols].sum(axis=1).iloc[0])
 
         if precautionary_lulucf:
             lulucf_future_mt = -max(0.0, bm_lulucf_mt)
@@ -277,7 +278,7 @@ def _resolve_adjustment_scalars(
     )
 
     if verbose:
-        print(
+        logger.info(
             f"    Scenario {scenario}: "
             f"bunkers={bunkers_mt:.0f} Mt, "
             f"lulucf_future={lulucf_future_mt:.0f} Mt, "
@@ -348,15 +349,17 @@ def load_and_process_rcbs(
         rcb_data = yaml.safe_load(file)
 
     if verbose:
-        print("Loaded RCB data structure:")
-        print(f"  Sources: {list(rcb_data['rcb_data'].keys())}")
+        logger.info("Loaded RCB data structure:")
+        logger.info(f"  Sources: {list(rcb_data['rcb_data'].keys())}")
         if rcb_data["rcb_data"]:
             first_source = next(iter(rcb_data["rcb_data"].keys()))
             first_data = rcb_data["rcb_data"][first_source]
-            print(f"  Example source ({first_source}):")
-            print(f"    Baseline year: {first_data.get('baseline_year')}")
-            print(f"    Unit: {first_data.get('unit')}")
-            print(f"    Scenarios: {list(first_data.get('scenarios', {}).keys())}")
+            logger.info(f"  Example source ({first_source}):")
+            logger.info(f"    Baseline year: {first_data.get('baseline_year')}")
+            logger.info(f"    Unit: {first_data.get('unit')}")
+            logger.info(
+                f"    Scenarios: {list(first_data.get('scenarios', {}).keys())}"
+            )
 
     # Ensure world emissions has string year columns
     world_fossil_emissions = ensure_string_year_columns(world_fossil_emissions)
@@ -393,10 +396,14 @@ def load_and_process_rcbs(
     rcb_adjustments = _load_rcb_scenario_adjustments(scenarios_dir, verbose=verbose)
 
     if verbose:
-        print("\nProcessing RCBs with adjustments:")
-        print("  Target baseline year: 2020")
-        print("  Adjustment mode: pre-computed (NGHGI-consistent, Weber et al. 2026)")
-        print("  Bunker NZ years: category-level median (from scenario adjustments)")
+        logger.info("\nProcessing RCBs with adjustments:")
+        logger.info("  Target baseline year: 2020")
+        logger.info(
+            "  Adjustment mode: pre-computed (NGHGI-consistent, Weber et al. 2026)"
+        )
+        logger.info(
+            "  Bunker NZ years: category-level median (from scenario adjustments)"
+        )
 
     # Pre-load baseline-shift LULUCF median timeseries from notebook 104 output.
     # These are year-by-year median AFOLU|Direct CSVs, one per AR6 category.
@@ -408,7 +415,7 @@ def load_and_process_rcbs(
     # Process each source
     for source_key, source_data in rcb_data["rcb_data"].items():
         if verbose:
-            print(f"\n  Processing source: {source_key}")
+            logger.info(f"\n  Processing source: {source_key}")
 
         baseline_year = source_data.get("baseline_year")
         unit = source_data.get("unit", "Gt CO2")
@@ -424,9 +431,9 @@ def load_and_process_rcbs(
             )
 
         if verbose:
-            print(f"    Baseline year: {baseline_year}")
-            print(f"    Unit: {unit}")
-            print(f"    Scenarios: {len(scenarios)}")
+            logger.info(f"    Baseline year: {baseline_year}")
+            logger.info(f"    Unit: {unit}")
+            logger.info(f"    Scenarios: {len(scenarios)}")
 
         for scenario, rcb_value in scenarios.items():
             climate_assessment, quantile = parse_rcb_scenario(scenario)
@@ -442,7 +449,7 @@ def load_and_process_rcbs(
                 shift_df = pd.read_csv(shift_csv).set_index("source")
                 lulucf_shift_cache[scenario] = shift_df
                 if verbose:
-                    print(
+                    logger.info(
                         f"    Loaded LULUCF shift median for {scenario} "
                         f"from {shift_csv}"
                     )
@@ -452,18 +459,16 @@ def load_and_process_rcbs(
             nz_year = rcb_adjustments[scenario]["nz_year_median"]
 
             # Resolve adjustment scalars from pre-computed values
-            bunkers_mt, lulucf_future_mt, lulucf_nghgi_mt = (
-                _resolve_adjustment_scalars(
-                    scenario=scenario,
-                    baseline_year=baseline_year,
-                    net_zero_year=nz_year,
-                    bunker_ts=bunker_ts,
-                    lulucf_shift_ts=direct_median,
-                    rcb_adjustments=rcb_adjustments,
-                    emission_category=emission_category,
-                    precautionary_lulucf=adjustments_config.precautionary_lulucf,
-                    verbose=verbose,
-                )
+            bunkers_mt, lulucf_future_mt, lulucf_nghgi_mt = _resolve_adjustment_scalars(
+                scenario=scenario,
+                baseline_year=baseline_year,
+                net_zero_year=nz_year,
+                bunker_ts=bunker_ts,
+                lulucf_shift_ts=direct_median,
+                rcb_adjustments=rcb_adjustments,
+                emission_category=emission_category,
+                precautionary_lulucf=adjustments_config.precautionary_lulucf,
+                verbose=verbose,
             )
 
             # Process RCB to 2020 baseline
@@ -507,7 +512,7 @@ def load_and_process_rcbs(
     rcb_df = pd.DataFrame(rcb_records)
 
     if verbose:
-        print("\nProcessed RCB data:")
-        print(rcb_df.to_string(index=False))
+        logger.info("\nProcessed RCB data:")
+        logger.info(rcb_df.to_string(index=False))
 
     return rcb_df

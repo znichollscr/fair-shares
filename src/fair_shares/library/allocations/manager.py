@@ -24,7 +24,6 @@ from fair_shares.library.allocations.budgets.per_capita import (
     per_capita_adjusted_gini_budget,
 )
 from fair_shares.library.allocations.pathways.cumulative_per_capita_convergence import (
-    cumulative_per_capita_convergence,
     cumulative_per_capita_convergence_adjusted,
     cumulative_per_capita_convergence_adjusted_gini,
 )
@@ -610,7 +609,7 @@ def run_parameter_grid(
         validate_allocation_year_for_co2(allocations_config, emission_category)
 
     for approach, params_list in allocations_config.items():
-        print(f"\nProcessing approach: {approach}")
+        logger.info(f"\nProcessing approach: {approach}")
 
         # Validate format
         if not isinstance(params_list, list):
@@ -624,7 +623,7 @@ def run_parameter_grid(
         # Process each parameter configuration
         for config_idx, params in enumerate(params_list, start=1):
             if len(params_list) > 1:
-                print(f"  Configuration {config_idx}/{len(params_list)}")
+                logger.info(f"  Configuration {config_idx}/{len(params_list)}")
 
             # Convert kebab-case to snake_case
             params = {k.replace("-", "_"): v for k, v in params.items()}
@@ -644,14 +643,14 @@ def run_parameter_grid(
             param_combinations = _expand_parameters(params)
 
             approach_attempts = len(years) * len(param_combinations)
-            print(f"  Will run {approach_attempts} parameter combinations")
+            logger.info(f"  Will run {approach_attempts} parameter combinations")
 
             # Run allocations for each combination
             for year in years:
                 for param_combo in param_combinations:
                     # Prepare arguments
                     kwargs = {year_param: year, **param_combo}
-                    print(
+                    logger.info(
                         f"    Running {approach} with "
                         f"{year_param}={year}, params={param_combo}"
                     )
@@ -669,9 +668,9 @@ def run_parameter_grid(
                     )
 
                     results.append(result)
-                    print("      Success")
+                    logger.info("      Success")
 
-    print(f"\nCompleted {len(results)} allocations successfully")
+    logger.info(f"\nCompleted {len(results)} allocations successfully")
     return results
 
 

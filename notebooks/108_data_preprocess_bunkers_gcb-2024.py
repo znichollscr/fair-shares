@@ -26,9 +26,8 @@
 # **Output:** intermediate/emissions/bunker_timeseries.csv
 
 # %%
-from pathlib import Path
-
 import pandas as pd
+import yaml
 from pyprojroot import here
 
 from fair_shares.library.exceptions import DataLoadingError
@@ -43,6 +42,7 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
+active_bunkers_source = None
 source_id = None
 
 # %%
@@ -58,35 +58,58 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
+            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
+    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    print(f"Loading config from: {config_path}")
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
 else:
+    # Running interactively — build the same config the pipeline would.
+    from fair_shares.library.utils.data.config import build_data_config
+
     emission_category = "co2-ffi"
-    source_id = "primap-202503_wdi-2025_un-owid-2025_wdi-2025_rcbs_co2-ffi"
+    active_sources = {
+        "emissions": "primap-202503",
+        "gdp": "wdi-2025",
+        "population": "un-owid-2025",
+        "gini": "wdi-2025",
+        "target": "rcbs",
+    }
+    config, source_id = build_data_config(emission_category, active_sources)
+    config = config.model_dump()
+    active_bunkers_source = config["active_bunkers_source"]
 
 project_root = here()
 intermediate_dir = resolve_source_path(f"output/{source_id}/intermediate/emissions")
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # %%
-gcb_bunker_path = (
-    project_root
-    / "data/bunkers/gcb-2024/National_Fossil_Carbon_Emissions_2024v1.0.xlsx"
-)
-print(f"Loading GCB bunker data from: {gcb_bunker_path}")
+# Read from the configured source rather than a path written into this
+# notebook. Bunker CO2 is deducted from the global remaining carbon budget
+# before any country is allocated a share, so this file moves every allocated
+# total — a hardcoded path meant swapping vintages changed every number with
+# nothing in the source id to show for it.
+bunkers_config = config["bunkers"][active_bunkers_source]
+bunkers_params = bunkers_config["data_parameters"]
+
+gcb_bunker_path = resolve_source_path(bunkers_config["path"])
+print(f"Loading bunker data from: {gcb_bunker_path}")
 
 if not gcb_bunker_path.exists():
-    raise DataLoadingError(f"GCB bunker fuel file not found: {gcb_bunker_path}")
+    raise DataLoadingError(f"Bunker fuel file not found: {gcb_bunker_path}")
 
 gcb_sheet = pd.read_excel(
     gcb_bunker_path,
-    sheet_name="Territorial Emissions",
-    header=11,
+    sheet_name=bunkers_params["sheet_name"],
+    header=bunkers_params["header_row"],
     index_col=0,
 )
 
-bunker_col = gcb_sheet["Bunkers"].dropna()
+bunker_col = gcb_sheet[bunkers_params["bunker_column"]].dropna()
 
 
 def _is_year(v):

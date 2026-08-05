@@ -24,8 +24,10 @@ from fair_shares.library.allocations.results.metadata import (
     get_all_metadata_columns,
 )
 from fair_shares.library.exceptions import DataProcessingError
-from fair_shares.library.utils.dataframes import ensure_string_year_columns
-from fair_shares.library.utils.dataframes import TimeseriesDataFrame
+from fair_shares.library.utils.dataframes import (
+    TimeseriesDataFrame,
+    ensure_string_year_columns,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -176,15 +178,15 @@ def delete_existing_parquet_files(output_dir: Path) -> None:
     # Find and delete existing parquet files
     parquet_files = list(output_dir.glob("allocations_*.parquet"))
     if parquet_files:
-        print(f"Deleting {len(parquet_files)} existing parquet files:")
+        logger.info(f"Deleting {len(parquet_files)} existing parquet files:")
         for file_path in parquet_files:
             try:
                 file_path.unlink()
-                print(f"  Deleted: {file_path.name}")
+                logger.info(f"  Deleted: {file_path.name}")
             except Exception as e:
-                print(f"  Failed to delete {file_path.name}: {e}")
+                logger.info(f"  Failed to delete {file_path.name}: {e}")
     else:
-        print("No existing parquet files found to delete")
+        logger.info("No existing parquet files found to delete")
 
 
 def prepare_dataframe(
@@ -336,20 +338,20 @@ def _write_parquet_with_append(df: pd.DataFrame, file_path: Path) -> None:
         try:
             existing = pd.read_parquet(file_path)
             combined = pd.concat([existing, df], ignore_index=True)
-            print(f"Appending {len(df)} rows to existing file: {file_path.name}")
+            logger.info(f"Appending {len(df)} rows to existing file: {file_path.name}")
         except Exception as e:
-            print(f"Warning: Could not read existing file {file_path.name}: {e}")
-            print("Writing new data only.")
+            logger.info(f"Warning: Could not read existing file {file_path.name}: {e}")
+            logger.info("Writing new data only.")
             combined = df
     else:
         combined = df
-        print(f"Creating new file: {file_path.name}")
+        logger.info(f"Creating new file: {file_path.name}")
 
     if not combined.empty:
         combined.to_parquet(file_path, index=False)
-        print(f"Successfully wrote {len(combined)} rows to {file_path.name}")
+        logger.info(f"Successfully wrote {len(combined)} rows to {file_path.name}")
     else:
-        print(f"Warning: No data to write to {file_path.name}")
+        logger.info(f"Warning: No data to write to {file_path.name}")
 
 
 def _fix_data_types(df: pd.DataFrame, is_budget: bool) -> pd.DataFrame:

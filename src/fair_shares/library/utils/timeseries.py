@@ -6,6 +6,7 @@ harmonization, and year-based data transformations.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -25,6 +26,9 @@ from fair_shares.library.validation.pipeline_validation import (
 
 if TYPE_CHECKING:
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
+
+
+logger = logging.getLogger(__name__)
 
 
 def interpolate_scenarios_data(
@@ -73,7 +77,7 @@ def interpolate_scenarios_data(
         # Merge with original data to preserve existing values, fill missing with NA
         df = complete_combinations.merge(df, on=grouping_cols + ["year"], how="left")  # noqa: RUF005
 
-        print(f"Added missing years from {min_year} to {max_year}")
+        logger.info(f"Added missing years from {min_year} to {max_year}")
 
     # Get emission columns (exclude metadata columns)
     emission_cols = [col for col in df.columns if col not in index_cols]
@@ -96,7 +100,7 @@ def interpolate_scenarios_data(
 
         # Combine interpolated pathways
         df = pd.concat(interpolated_pathways, ignore_index=True)
-        print("Applied linear interpolation to pathways data")
+        logger.info("Applied linear interpolation to pathways data")
 
     elif interpolation_method == "stepwise":
         # For stepwise interpolation, backward fill then forward fill
@@ -118,7 +122,7 @@ def interpolate_scenarios_data(
 
         # Combine interpolated pathways
         df = pd.concat(interpolated_pathways, ignore_index=True)
-        print("Applied stepwise interpolation to pathways data")
+        logger.info("Applied stepwise interpolation to pathways data")
 
     # Reorder columns to ensure emissions are in the correct order
     emission_cols = [col for col in df.columns if col not in index_cols]
@@ -127,7 +131,7 @@ def interpolate_scenarios_data(
     new_column_order = index_cols + emission_cols
     df = df[new_column_order]
 
-    print(f"Final column order: {list(df.columns)}")
+    logger.info(f"Final column order: {list(df.columns)}")
 
     return df
 

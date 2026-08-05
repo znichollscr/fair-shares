@@ -7,6 +7,7 @@ that prepares input data for fair share allocations.
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -19,6 +20,8 @@ from fair_shares.library.exceptions import (
     MissingPipelineDependency,
 )
 from fair_shares.library.paths import DATA_DIR_ENV, OUTPUT_DIR_ENV
+
+logger = logging.getLogger(__name__)
 
 
 def _enumerate_required_files(
@@ -159,6 +162,10 @@ def generate_snakemake_command(
     ]
 
     # Pass lulucf source (required for NGHGI corrections)
+    bunkers_source = active_sources.get("bunkers")
+    if bunkers_source:
+        command.append(f"active_bunkers_source={bunkers_source}")
+
     lulucf_source = active_sources.get("lulucf")
     if lulucf_source:
         command.append(f"active_lulucf_source={lulucf_source}")
@@ -470,12 +477,12 @@ def resolve_data_setup(
     }
 
     if verbose:
-        print("CUSTOM DATA PIPELINE SETUP")
-        print(f"Target: {target}")
-        print(f"Emission category: {emission_category}")
-        print(f"Source ID: {source_id}")
-        print(f"Target file: {paths['target_file']}")
-        print()
+        logger.info("CUSTOM DATA PIPELINE SETUP")
+        logger.info(f"Target: {target}")
+        logger.info(f"Emission category: {emission_category}")
+        logger.info(f"Source ID: {source_id}")
+        logger.info(f"Target file: {paths['target_file']}")
+        logger.info("")
 
     return setup_info
 
@@ -526,15 +533,15 @@ def build_data_setup(
     command = setup_info["command"]
 
     if verbose:
-        print("Running Snakemake...")
-        print("Command:", " ".join(command))
-        print()
+        logger.info("Running Snakemake...")
+        logger.info("Command:", " ".join(command))
+        logger.info("")
 
     stdout, stderr = execute_snakemake_setup(command, resolved_root, timeout)
     setup_info["execution"] = {"success": True, "stdout": stdout, "stderr": stderr}
 
     if verbose:
-        print("Data setup completed successfully!")
+        logger.info("Data setup completed successfully!")
 
     all_files_exist, file_info = verify_data_setup(
         setup_info["paths"]["processed_dir"],
@@ -642,16 +649,16 @@ def setup_data(
     all_files_exist = setup_info["verification"]["all_files_exist"]
 
     if verbose:
-        print("\nDATA VERIFICATION")
+        logger.info("\nDATA VERIFICATION")
         for file_type, info in file_info.items():
             status = "OK" if info["exists"] else "MISSING"
             size_info = f" ({info['size_mb']:.1f} MB)" if info["exists"] else ""
-            print(f"  {file_type}: {status}{size_info}")
+            logger.info(f"  {file_type}: {status}{size_info}")
 
         if all_files_exist:
-            print("\nAll required data files found!")
+            logger.info("\nAll required data files found!")
         else:
-            print("\nSome data files are missing.")
+            logger.info("\nSome data files are missing.")
 
     if not all_files_exist:
         missing = sorted(k for k, v in file_info.items() if not v["exists"])
