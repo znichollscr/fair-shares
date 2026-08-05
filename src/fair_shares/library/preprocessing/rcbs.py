@@ -333,36 +333,12 @@ def load_and_process_rcbs(
     pd.DataFrame
         DataFrame with processed RCB data including provenance fields
     """
-    # Validate emission category
-    if emission_category not in ("co2-ffi", "co2"):
-        raise ConfigurationError(
-            f"RCB-based budget allocations only support 'co2-ffi' and 'co2' emission "
-            f"categories. Got: {emission_category}. Please use target: 'ar6' "
-            f"in your configuration for other emission categories."
-        )
-
     # Load RCB YAML
     if not rcb_yaml_path.exists():
         raise DataLoadingError(f"RCB YAML file not found: {rcb_yaml_path}")
 
     with open(rcb_yaml_path) as file:
         rcb_data = yaml.safe_load(file)
-
-    if verbose:
-        logger.info("Loaded RCB data structure:")
-        logger.info(f"  Sources: {list(rcb_data['rcb_data'].keys())}")
-        if rcb_data["rcb_data"]:
-            first_source = next(iter(rcb_data["rcb_data"].keys()))
-            first_data = rcb_data["rcb_data"][first_source]
-            logger.info(f"  Example source ({first_source}):")
-            logger.info(f"    Baseline year: {first_data.get('baseline_year')}")
-            logger.info(f"    Unit: {first_data.get('unit')}")
-            logger.info(
-                f"    Scenarios: {list(first_data.get('scenarios', {}).keys())}"
-            )
-
-    # Ensure world emissions has string year columns
-    world_fossil_emissions = ensure_string_year_columns(world_fossil_emissions)
 
     # Pre-load scenario-invariant timeseries (bunkers always; NGHGI only for total CO2)
     _nghgi_ts, bunker_ts, _splice_year = _load_shared_timeseries(
@@ -395,6 +371,109 @@ def load_and_process_rcbs(
         )
     rcb_adjustments = _load_rcb_scenario_adjustments(scenarios_dir, verbose=verbose)
 
+    lulucf_shift = {}
+    for source_data in rcb_data["rcb_data"].values():
+        for scenario in source_data.get("scenarios", {}):
+            if scenario in lulucf_shift:
+                continue
+            shift_csv = scenarios_dir / f"lulucf_shift_median_{scenario}.csv"
+            if not shift_csv.exists():
+                raise DataLoadingError(
+                    f"LULUCF shift median not found: {shift_csv}. "
+                    "Run notebook 104 (AR6 scenario preprocessing) first."
+                )
+            lulucf_shift[scenario] = pd.read_csv(shift_csv).set_index("source")
+
+    return process_rcbs(
+        rcb_data=rcb_data,
+        world_fossil_emissions=world_fossil_emissions,
+        emission_category=emission_category,
+        bunker_timeseries=bunker_ts,
+        rcb_adjustments=rcb_adjustments,
+        lulucf_shift=lulucf_shift,
+        precautionary_lulucf=adjustments_config.precautionary_lulucf,
+        actual_bm_lulucf_emissions=actual_bm_lulucf_emissions,
+        verbose=verbose,
+    )
+
+
+def process_rcbs(
+    *,
+    rcb_data: dict,
+    world_fossil_emissions: pd.DataFrame,
+    emission_category: str,
+    bunker_timeseries: pd.DataFrame,
+    rcb_adjustments: dict[str, dict],
+    lulucf_shift: dict[str, pd.DataFrame],
+    precautionary_lulucf: bool = True,
+    actual_bm_lulucf_emissions: pd.DataFrame | None = None,
+    verbose: bool = True,
+) -> pd.DataFrame:
+    """Rebase published remaining carbon budgets, from data already in memory.
+
+    The computational half of :func:`load_and_process_rcbs`, split out so that
+    a caller holding the inputs as frames does not have to write them to a
+    directory named after a source id just to read them back. That indirection
+    was the only reason this step needed a ``source_id`` at all.
+
+    Parameters
+    ----------
+    rcb_data
+        The parsed RCB definition: ``{"rcb_data": {source: {...}}}``.
+    world_fossil_emissions
+        World fossil CO2 emissions, always fossil regardless of category.
+    emission_category
+        ``"co2-ffi"`` or ``"co2"``.
+    bunker_timeseries
+        International bunker CO2, as a single-row timeseries.
+    rcb_adjustments
+        Scenario-derived adjustment scalars, keyed by scenario label.
+    lulucf_shift
+        Per-scenario year-by-year median land flux, keyed by scenario label.
+    precautionary_lulucf
+        When true, a projected land sink cannot enlarge a fossil budget.
+    actual_bm_lulucf_emissions
+        Bookkeeping land flux, required when `emission_category` is ``"co2"``.
+    verbose
+        Log per-scenario detail.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per (source, scenario) with the rebased budget and every
+        adjustment that produced it.
+
+    Raises
+    ------
+    ConfigurationError
+        If the category is unsupported, or a source is missing a baseline year
+        or carries no scenarios.
+    """
+    if emission_category not in ("co2-ffi", "co2"):
+        raise ConfigurationError(
+            f"RCB-based budget allocations only support 'co2-ffi' and 'co2' emission "
+            f"categories. Got: {emission_category}. Please use target: 'ar6' "
+            f"in your configuration for other emission categories."
+        )
+
+    if verbose:
+        logger.info("Loaded RCB data structure:")
+        logger.info(f"  Sources: {list(rcb_data['rcb_data'].keys())}")
+        if rcb_data["rcb_data"]:
+            first_source = next(iter(rcb_data["rcb_data"].keys()))
+            first_data = rcb_data["rcb_data"][first_source]
+            logger.info(f"  Example source ({first_source}):")
+            logger.info(f"    Baseline year: {first_data.get('baseline_year')}")
+            logger.info(f"    Unit: {first_data.get('unit')}")
+            logger.info(
+                f"    Scenarios: {list(first_data.get('scenarios', {}).keys())}"
+            )
+
+    # Ensure world emissions has string year columns
+    world_fossil_emissions = ensure_string_year_columns(world_fossil_emissions)
+    bunker_ts = bunker_timeseries
+    lulucf_shift_cache = lulucf_shift
+
     if verbose:
         logger.info("\nProcessing RCBs with adjustments:")
         logger.info("  Target baseline year: 2020")
@@ -404,10 +483,6 @@ def load_and_process_rcbs(
         logger.info(
             "  Bunker NZ years: category-level median (from scenario adjustments)"
         )
-
-    # Pre-load baseline-shift LULUCF median timeseries from notebook 104 output.
-    # These are year-by-year median AFOLU|Direct CSVs, one per AR6 category.
-    lulucf_shift_cache: dict[str, pd.DataFrame] = {}
 
     # Create a list to store all RCB records
     rcb_records = []
@@ -438,21 +513,11 @@ def load_and_process_rcbs(
         for scenario, rcb_value in scenarios.items():
             climate_assessment, quantile = parse_rcb_scenario(scenario)
 
-            # Load pre-computed median LULUCF shift timeseries for baseline shift
             if scenario not in lulucf_shift_cache:
-                shift_csv = scenarios_dir / f"lulucf_shift_median_{scenario}.csv"
-                if not shift_csv.exists():
-                    raise DataLoadingError(
-                        f"LULUCF shift median not found: {shift_csv}. "
-                        "Run notebook 104 (AR6 scenario preprocessing) first."
-                    )
-                shift_df = pd.read_csv(shift_csv).set_index("source")
-                lulucf_shift_cache[scenario] = shift_df
-                if verbose:
-                    logger.info(
-                        f"    Loaded LULUCF shift median for {scenario} "
-                        f"from {shift_csv}"
-                    )
+                raise ConfigurationError(
+                    f"no LULUCF shift median supplied for scenario {scenario!r}. "
+                    f"Have: {sorted(lulucf_shift_cache)}"
+                )
             direct_median = lulucf_shift_cache[scenario]
 
             # Scenario-level NZ year (for bunker integration)
@@ -467,7 +532,7 @@ def load_and_process_rcbs(
                 lulucf_shift_ts=direct_median,
                 rcb_adjustments=rcb_adjustments,
                 emission_category=emission_category,
-                precautionary_lulucf=adjustments_config.precautionary_lulucf,
+                precautionary_lulucf=precautionary_lulucf,
                 verbose=verbose,
             )
 

@@ -74,7 +74,7 @@ def create_coverage_summary(
     population: pd.DataFrame,
     gini: pd.DataFrame,
     region_mapping: pd.DataFrame,
-    output_dir: Path,
+    output_dir: Path | None,
     gdp_variant: str | None = None,
 ) -> pd.DataFrame:
     """Create and save data coverage summary.
@@ -86,7 +86,8 @@ def create_coverage_summary(
         population: Population DataFrame
         gini: Gini coefficient DataFrame
         region_mapping: Region mapping DataFrame with iso3c column
-        output_dir: Directory to save coverage summary
+        output_dir: Directory to save the coverage summary to, or None to
+            return the frame without writing anything.
         gdp_variant: Optional GDP variant name for reporting
 
     Returns
@@ -219,10 +220,13 @@ def create_coverage_summary(
     logger.info(f"Countries missing population data: {sorted(missing_population)}")
     logger.info(f"Countries missing Gini data: {sorted(missing_gini)}")
 
-    # Save coverage summary
-    output_dir.mkdir(parents=True, exist_ok=True)
-    coverage_path = output_dir / "country_data_coverage_summary.csv"
-    coverage_summary.to_csv(coverage_path, index=False)
-    logger.info(f"\nData coverage summary saved to: {coverage_path}")
+    # Save coverage summary, unless the caller only wants the frame. Writing
+    # is optional rather than assumed: a caller working in memory should not
+    # have to invent a directory to receive a file it will not read.
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        coverage_path = output_dir / "country_data_coverage_summary.csv"
+        coverage_summary.to_csv(coverage_path, index=False)
+        logger.info(f"\nData coverage summary saved to: {coverage_path}")
 
     return coverage_summary
