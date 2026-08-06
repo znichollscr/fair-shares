@@ -28,20 +28,25 @@ The entry points:
 
 >>> from fair_shares.api import Inputs, SourceSelection, preprocess, allocate
 
+The modules are named so they do not shadow what they export: a package that
+offers an ``allocate`` function cannot also have an importable ``allocate``
+module, because after ``__init__`` runs the function wins and
+``import fair_shares.api.allocate`` hands back a function.
+
 See :mod:`fair_shares.api.sources` for how to describe inputs,
-:mod:`fair_shares.api.preprocess` for what preprocessing produces, and
-:mod:`fair_shares.api.allocate` for running allocations against it.
+:mod:`fair_shares.api.pipeline` for what preprocessing produces, and
+:mod:`fair_shares.api.allocation` for running allocations against it.
 """
 
 from __future__ import annotations
 
-from fair_shares.api.allocate import (
+from fair_shares.api.allocation import (
     AllocationRequest,
     AllocationResult,
     ClimateTarget,
     allocate,
 )
-from fair_shares.api.preprocess import ProcessedData, preprocess
+from fair_shares.api.pipeline import ProcessedData, preprocess
 from fair_shares.api.sources import Inputs, SourceSelection
 
 __all__ = [
