@@ -278,14 +278,12 @@ PLOT_START_YEAR = 2015
 import matplotlib.pyplot as plt
 from pyprojroot import here
 
-from fair_shares.library import paths as fs_paths
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.notebook_helpers import (
     load_allocation_data,
     print_results_summary,
     run_all_allocations,
 )
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     convert_parquet_to_wide_csv,
     setup_data,
@@ -338,7 +336,7 @@ loaded_data = load_allocation_data(
     emission_category=emission_category,
 )
 
-output_dir = fs_paths.output_dir() / source_id / "allocations" / allocation_folder
+output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
 
 data_context = {
     "source-id": source_id,
@@ -419,7 +417,7 @@ ecpc_allocations = {
     ],
 }
 
-ecpc_output_dir = resolve_source_path("output") / ecpc_setup["source_id"] / "allocations" / "602_dekker_2025_ecpc"
+ecpc_output_dir = project_root / "output" / ecpc_setup["source_id"] / "allocations" / "602_dekker_2025_ecpc"
 
 ecpc_context = {
     "source-id": ecpc_setup["source_id"],

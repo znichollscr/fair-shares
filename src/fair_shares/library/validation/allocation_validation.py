@@ -8,7 +8,6 @@ See docs/science/ for theoretical foundations of validation requirements.
 from __future__ import annotations
 
 import inspect
-import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -28,8 +27,6 @@ from .pipeline_validation import (
     validate_stationary_dataframe,
     validate_timeseries_values,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def validate_single_emission_category(
@@ -587,11 +584,11 @@ def validate_gini_data(
             )
 
         if verbose:
-            logger.info(
+            print(
                 f"{dataset_name_for_error_msg} coefficients validated: "
                 f"all values in range 0-1"
             )
-            logger.info(f"  Range: {gini_min:.3f} - {gini_max:.3f}")
+            print(f"  Range: {gini_min:.3f} - {gini_max:.3f}")
 
 
 def validate_scenarios_data(

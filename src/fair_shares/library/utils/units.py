@@ -21,7 +21,6 @@ identities in.
 from __future__ import annotations
 
 import functools
-import logging
 import re
 from typing import TYPE_CHECKING
 
@@ -42,9 +41,6 @@ if TYPE_CHECKING:
 # ============================================================================
 # Unit Registry
 # ============================================================================
-
-
-logger = logging.getLogger(__name__)
 
 
 @functools.cache
@@ -207,7 +203,7 @@ def convert_unit_robust(
         source_unit = df_cleaned.index.get_level_values(unit_level)[0]
     else:
         source_unit = df_cleaned.index[0]
-    logger.info(f"Converting units from {source_unit} to {target_unit}")
+    print(f"Converting units from {source_unit} to {target_unit}")
 
     return convert_unit(df_cleaned, target_unit, unit_level=unit_level, ur=ur)
 

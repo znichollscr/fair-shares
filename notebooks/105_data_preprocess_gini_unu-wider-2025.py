@@ -30,7 +30,6 @@ import yaml
 from pyprojroot import here
 
 from fair_shares.library.exceptions import ConfigurationError
-from fair_shares.library.paths import resolve_source_path
 
 # %% tags=["parameters"]
 emission_category = None
@@ -40,7 +39,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 active_scenario_source = None
 source_id = None
 
@@ -49,7 +47,7 @@ if emission_category is not None:
     # Running via Papermill — source_id is injected by the Snakefile
     print("Running via Papermill")
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -107,7 +105,7 @@ if selection != "latest-high-quality":
 
 # Construct source-specific intermediate_dir
 intermediate_dir_str = f"output/{source_id}/intermediate/gini"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Print out the parameters for debugging
@@ -121,7 +119,7 @@ print(f"Intermediate directory: {intermediate_dir_str}")
 # %%
 # Load Gini data
 print("Loading Gini data...")
-gini_data = pd.read_excel(resolve_source_path(gini_path))
+gini_data = pd.read_excel(project_root / gini_path)
 print(f"Gini data shape: {gini_data.shape}")
 print(f"Gini data columns: {list(gini_data.columns)}")
 

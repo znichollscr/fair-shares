@@ -37,7 +37,6 @@ from fair_shares.library.exceptions import (
     DataLoadingError,
     DataProcessingError,
 )
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     convert_unit_robust,
@@ -54,7 +53,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -76,12 +74,11 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -131,7 +128,7 @@ emissions_data_parameters = emissions_config["data_parameters"]
 
 # Construct intermediate_dir from output directory structure
 intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Unpack required nested parameters
@@ -216,7 +213,7 @@ print(f"Intermediate directory: {intermediate_dir_str}")
 
 # %%
 print(f"Opening emissions file: {emissions_path}")
-ds = xr.open_dataset(resolve_source_path(emissions_path))
+ds = xr.open_dataset(project_root / emissions_path)
 
 # List all variables in the dataset for reference
 print("Available variables in dataset:", list(ds.variables.keys()))

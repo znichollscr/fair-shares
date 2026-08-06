@@ -218,7 +218,7 @@ class TestSourceIdWithGenerator:
 
         # Check source_id includes generator
         expected_source_id = (
-            "primap-202503_wdi-2025_un-owid-2025_unu-wider-2025_gcb-2024_"
+            "primap-202503_wdi-2025_un-owid-2025_unu-wider-2025_"
             "rcb-pathways-exponential-decay_co2-ffi"
         )
         assert source_id == expected_source_id

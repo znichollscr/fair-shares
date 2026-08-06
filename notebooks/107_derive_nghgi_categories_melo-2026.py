@@ -63,7 +63,6 @@ from fair_shares.library.exceptions import (
     DataLoadingError,
     DataProcessingError,
 )
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     ensure_string_year_columns,
@@ -79,7 +78,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -95,12 +93,11 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
         config = yaml.safe_load(f)
@@ -150,9 +147,9 @@ lulucf_path = lulucf_config["path"]
 lulucf_params = lulucf_config["data_parameters"]
 
 # Paths
-melo_path = resolve_source_path(lulucf_path)
+melo_path = project_root / lulucf_path
 intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 emissions_config = config["emissions"][active_emissions_source]

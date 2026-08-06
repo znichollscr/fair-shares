@@ -168,7 +168,6 @@ desired_harmonisation_year = 2020
 import matplotlib.pyplot as plt
 from pyprojroot import here
 
-from fair_shares.library import paths as fs_paths
 from fair_shares.library.exceptions import ConfigurationError
 from fair_shares.library.notebook_helpers import (
     load_allocation_data,
@@ -227,7 +226,7 @@ loaded_data = load_allocation_data(
     emission_category=emission_category,
 )
 
-output_dir = fs_paths.output_dir() / source_id / "allocations" / allocation_folder
+output_dir = project_root / "output" / source_id / "allocations" / allocation_folder
 
 data_context = {
     "source-id": source_id,

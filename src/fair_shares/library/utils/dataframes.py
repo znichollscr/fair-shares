@@ -10,7 +10,6 @@ This module provides utilities for working with timeseries DataFrames including:
 from __future__ import annotations
 
 import inspect
-import logging
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -84,9 +83,6 @@ ssp245              0.5      World  Mt * CO2e   10    20
 # ============================================================================
 # Year Column Utilities
 # ============================================================================
-
-
-logger = logging.getLogger(__name__)
 
 
 def ensure_string_year_columns(
@@ -358,8 +354,8 @@ def process_iamc_zip(
     # Convert column names to strings and standardize
     df_data.columns = _standardize_column_labels([str(c) for c in df_data.columns])
     meta_df.columns = _standardize_column_labels([str(c) for c in meta_df.columns])
-    logger.info(f"Data columns for {data_file.name}: {df_data.columns.tolist()}")
-    logger.info(f"Meta columns for {meta_file.name}: {meta_df.columns.tolist()}")
+    print(f"Data columns for {data_file.name}: {df_data.columns.tolist()}")
+    print(f"Meta columns for {meta_file.name}: {meta_df.columns.tolist()}")
     # Ensure required metadata columns exist
     if "Category" not in meta_df.columns:
         raise DataProcessingError(f"No 'Category' column in metadata file {meta_file}")
@@ -438,7 +434,7 @@ def set_post_net_zero_emissions_to_nan(
 
     # Get unit for warning message
     unit = result["unit"].iloc[0] if "unit" in result.columns else "units"
-    logger.info(
+    print(
         f"WARNING: Net-zero reached in {net_zero_year}. "
         f"{cumulative_net_negative:.2f} {unit} of net-negative emissions set to NaN."
     )

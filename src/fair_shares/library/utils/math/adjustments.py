@@ -10,7 +10,6 @@ both budget and pathway allocation approaches:
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -25,9 +24,6 @@ if TYPE_CHECKING:
     import pint.facets
 
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
-
-
-logger = logging.getLogger(__name__)
 
 
 def calculate_responsibility_adjustment_data(
@@ -137,7 +133,10 @@ def calculate_responsibility_adjustment_data(
         reference_year = allocation_year - 1
         years = pd.to_numeric(responsibility_columns, errors="coerce")
         discount_weights = pd.Series(
-            [(1 - historical_discount_rate) ** (reference_year - y) for y in years],
+            [
+                (1 - historical_discount_rate) ** (reference_year - y)
+                for y in years
+            ],
             index=responsibility_columns,
         )
         history_countries = history_countries.mul(discount_weights, axis=1)
@@ -160,9 +159,7 @@ def calculate_responsibility_adjustment_data(
         )
         pop_columns = pop_numeric.columns[pop_mask].tolist()
         if not pop_columns:
-            raise AllocationError(
-                "No population data found for pre-allocation responsibility window."
-            )
+            raise AllocationError("No population data found for pre-allocation responsibility window.")
 
         pop_numeric = pop_numeric[pop_columns]
 
@@ -191,9 +188,7 @@ def calculate_responsibility_adjustment_data(
         responsibility_data = responsibility_data / population_totals
 
     if responsibility_data.sum() <= 0:
-        raise AllocationError(
-            "Pre-allocation responsibility metric sums to non-positive."
-        )
+        raise AllocationError("Pre-allocation responsibility metric sums to non-positive.")
 
     return responsibility_data
 
@@ -320,7 +315,7 @@ def calculate_responsibility_adjustment_data_convergence(
             "HOW TO FIX:\n"
             "  Use an emissions dataset with country-level historical data:\n"
             "  >>> # Verify historical coverage\n"
-            "  >>> logger.info(emissions_df[['1850', '1900', '1950']])  "
+            "  >>> print(emissions_df[['1850', '1900', '1950']])  "
             "# Should have country rows"
         )
 
@@ -330,7 +325,10 @@ def calculate_responsibility_adjustment_data_convergence(
         reference_year = first_allocation_year
         years = pd.to_numeric(responsibility_columns, errors="coerce")
         discount_weights = pd.Series(
-            [(1 - historical_discount_rate) ** (reference_year - y) for y in years],
+            [
+                (1 - historical_discount_rate) ** (reference_year - y)
+                for y in years
+            ],
             index=responsibility_columns,
         )
         history_countries = history_countries.mul(discount_weights, axis=1)
@@ -393,7 +391,7 @@ def calculate_responsibility_adjustment_data_convergence(
             "  All countries have zero/negative historical emissions.\n\n"
             "HOW TO FIX:\n"
             "  Check your historical emissions data:\n"
-            "  >>> logger.info(country_actual_emissions_ts.sum(axis=1))  # Should be positive"
+            "  >>> print(country_actual_emissions_ts.sum(axis=1))  # Should be positive"
         )
 
     return responsibility_data
@@ -512,7 +510,7 @@ def calculate_capability_adjustment_data(
             "  Ensure both datasets cover overlapping years:\n"
             "  >>> pop_years = set(population_df.columns)\n"
             "  >>> gdp_years = set(gdp_df.columns)\n"
-            "  >>> logger.info(pop_years & gdp_years)  # Should show common years"
+            "  >>> print(pop_years & gdp_years)  # Should show common years"
         )
 
     gdp_common = gdp_single_unit[common_columns]
@@ -549,8 +547,8 @@ def calculate_capability_adjustment_data(
             "  GDP or population data contains zeros/negatives or is misaligned.\n\n"
             "HOW TO FIX:\n"
             "  Check GDP and population data:\n"
-            "  >>> logger.info(gdp_df.describe())  # Should be positive\n"
-            "  >>> logger.info(population_df.describe())  # Should be positive"
+            "  >>> print(gdp_df.describe())  # Should be positive\n"
+            "  >>> print(population_df.describe())  # Should be positive"
         )
 
     return capability_data

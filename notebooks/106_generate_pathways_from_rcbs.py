@@ -41,7 +41,6 @@ from fair_shares.library.exceptions import (
     ConfigurationError,
     DataLoadingError,
 )
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import (
     build_source_id,
     ensure_string_year_columns,
@@ -56,7 +55,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -75,12 +73,11 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -174,8 +171,8 @@ print(f"  Precautionary LULUCF cap: {adjustments_config.precautionary_lulucf}")
 emissions_intermediate_dir_str = f"output/{source_id}/intermediate/emissions"
 scenarios_intermediate_dir_str = f"output/{source_id}/intermediate/scenarios"
 
-emissions_intermediate_dir = resolve_source_path(emissions_intermediate_dir_str)
-scenarios_intermediate_dir = resolve_source_path(scenarios_intermediate_dir_str)
+emissions_intermediate_dir = project_root / emissions_intermediate_dir_str
+scenarios_intermediate_dir = project_root / scenarios_intermediate_dir_str
 
 # Create scenarios output directory
 scenarios_intermediate_dir.mkdir(parents=True, exist_ok=True)
@@ -192,7 +189,7 @@ else:
         "No RCB configuration found in config (expected 'rcbs' or 'rcb-pathways' in targets)"
     )
 
-rcb_yaml_path = resolve_source_path(rcb_config)["path"]
+rcb_yaml_path = project_root / rcb_config["path"]
 
 print("\nPaths:")
 print(f"  RCB YAML: {rcb_yaml_path}")

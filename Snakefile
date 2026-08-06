@@ -31,9 +31,6 @@ from fair_shares.library.utils.data.config import (
     ALL_GHG_CO2_CATEGORIES,
 )
 from fair_shares.library.utils.dataframes import determine_processing_categories
-from fair_shares.library import paths as fs_paths
-
-from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Configuration from command line
@@ -45,7 +42,6 @@ active_gdp_source = config.get("active_gdp_source", None)
 active_population_source = config.get("active_population_source", None)
 active_gini_source = config.get("active_gini_source", None)
 active_lulucf_source = config.get("active_lulucf_source", None)
-active_bunkers_source = config.get("active_bunkers_source", None)
 active_target_source = config.get("active_target_source", None)
 rcb_generator = config.get("rcb_generator", None)
 harmonisation_year = config.get("harmonisation_year", None)
@@ -74,8 +70,6 @@ active_sources_dict = {
 }
 if active_lulucf_source is not None:
     active_sources_dict["lulucf"] = active_lulucf_source
-if active_bunkers_source is not None:
-    active_sources_dict["bunkers"] = active_bunkers_source
 if rcb_generator is not None:
     active_sources_dict["rcb_generator"] = rcb_generator
 
@@ -90,23 +84,13 @@ SOURCE_ID = build_source_id(
     population=active_population_source or "unknown",
     gini=active_gini_source or "unknown",
     lulucf=active_lulucf_source,
-    bunkers=active_bunkers_source,
     target=active_target_source or "unknown",
     emission_category=emission_category,
     rcb_generator=rcb_generator,
 )
 
-# Absolute, and resolved through `paths` rather than assumed to sit under the
-# working directory. A relative "output/..." here silently pinned every rule's
-# target to wherever snakemake happened to be invoked from, so passing
-# `output_dir=` to `setup_data` built the tree in one place and verified it in
-# another. `paths.output_dir()` honours the argument, FAIR_SHARES_OUTPUT_DIR
-# and the surrounding checkout, in that order.
-OUTPUT_DIR = str(fs_paths.output_dir() / SOURCE_ID)
-
-# Code, not data: notebooks live in the checkout and are found relative to it,
-# which is what `workflow.basedir` gives us regardless of the cwd.
-NOTEBOOK_DIR = str(Path(workflow.basedir) / "notebooks")
+OUTPUT_DIR = f"output/{SOURCE_ID}"
+NOTEBOOK_DIR = "notebooks"
 
 # Two category lists drive the pipeline:
 #  EMISSION_CATEGORIES — what PRIMAP extraction (notebook 101) produces
@@ -263,8 +247,6 @@ def notebook_cmd_list(input_nb, output_nb, emission_category_override=None,
     ]
     if active_lulucf_source is not None:
         cmd += ["--param", f"active_lulucf_source={active_lulucf_source}"]
-    if active_bunkers_source is not None:
-        cmd += ["--param", f"active_bunkers_source={active_bunkers_source}"]
     if alignment_categories is not None:
         cmd += ["--param", f"alignment_categories={alignment_categories}"]
     if _scenario_source_key is not None:

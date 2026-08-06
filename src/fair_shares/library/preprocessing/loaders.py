@@ -1,6 +1,5 @@
 """Data loading functions for preprocessing notebooks."""
 
-import logging
 from pathlib import Path
 
 import pandas as pd
@@ -8,8 +7,6 @@ import pandas as pd
 from fair_shares.library.exceptions import DataLoadingError
 from fair_shares.library.preprocessing.paths import emissions_path
 from fair_shares.library.utils import ensure_string_year_columns
-
-logger = logging.getLogger(__name__)
 
 
 def load_emissions_data(
@@ -148,7 +145,7 @@ def load_scenarios_data(
             )
             scenarios_df = ensure_string_year_columns(scenarios_df)
             scenarios_data[category] = scenarios_df
-            logger.info(f"  Loaded scenarios for {category}: {scenarios_path.name}")
+            print(f"  Loaded scenarios for {category}: {scenarios_path.name}")
         else:
             # Primary categories should always have scenarios
             raise DataLoadingError(

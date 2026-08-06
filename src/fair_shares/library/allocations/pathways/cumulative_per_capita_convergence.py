@@ -350,8 +350,7 @@ def _cumulative_per_capita_convergence_core(
         responsibility_adjustment = calculate_relative_adjustment(
             responsibility_data,
             functional_form=pre_allocation_responsibility_functional_form,
-            exponent=normalized_pre_allocation_responsibility_weight
-            * pre_allocation_responsibility_exponent,
+            exponent=normalized_pre_allocation_responsibility_weight * pre_allocation_responsibility_exponent,
             inverse=True,
         )
         adjusted_population = adjusted_population * responsibility_adjustment
@@ -435,8 +434,12 @@ def _cumulative_per_capita_convergence_core(
         # Compute PCC baseline shares (linear blend from GF to EPC)
         from fair_shares.library.utils import groupby_except_robust
 
-        population_filtered = filter_time_columns(population_ts, first_allocation_year)
-        population_single_unit = set_single_unit(population_filtered, unit_level, ur=ur)
+        population_filtered = filter_time_columns(
+            population_ts, first_allocation_year
+        )
+        population_single_unit = set_single_unit(
+            population_filtered, unit_level, ur=ur
+        )
         pop_year_to_label = {int(c): c for c in population_single_unit.columns}
         pop_allocation = population_single_unit[
             pop_year_to_label[first_allocation_year]

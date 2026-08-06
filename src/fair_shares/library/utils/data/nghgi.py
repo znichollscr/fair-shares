@@ -25,7 +25,6 @@ import pandas as pd
 
 from fair_shares.library.exceptions import DataLoadingError, DataProcessingError
 
-
 def load_world_co2_lulucf(path: str | Path) -> tuple[pd.DataFrame, int]:
     """Load world-total NGHGI LULUCF CO2 timeseries from notebook-produced CSV.
 

@@ -5,7 +5,6 @@ Timeseries completeness utilities for the fair-shares library.
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -19,9 +18,6 @@ from fair_shares.library.validation.pipeline_validation import (
 
 if TYPE_CHECKING:
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
-
-
-logger = logging.getLogger(__name__)
 
 
 def get_world_totals_timeseries(
@@ -62,13 +58,13 @@ def get_world_totals_timeseries(
 
     if world_data.empty:
         if verbose:
-            logger.info(f"Warning: No world data found with key '{world_key}'")
+            print(f"Warning: No world data found with key '{world_key}'")
         return pd.DataFrame()
 
     if verbose:
         year_cols = get_year_columns(world_data)
         if year_cols:
-            logger.info(f"World data found for {world_key}: {len(year_cols)} years")
+            print(f"World data found for {world_key}: {len(year_cols)} years")
 
     return world_data
 
@@ -115,7 +111,7 @@ def get_complete_iso3c_timeseries(
 
     if not year_cols:
         if verbose:
-            logger.info(f"Warning: No year columns found in range {start}-{end}")
+            print(f"Warning: No year columns found in range {start}-{end}")
         return set()
 
     # Check for complete data (no NaN values) in the specified year range
@@ -124,12 +120,8 @@ def get_complete_iso3c_timeseries(
     complete_countries = complete_countries.unique().tolist()
 
     if verbose:
-        logger.info(
-            f"Found {len(complete_countries)} with complete data for {start}-{end}"
-        )
-        logger.info(
-            f"Checked: {len(year_cols)} years ({min(year_cols)}-{max(year_cols)})"
-        )
+        print(f"Found {len(complete_countries)} with complete data for {start}-{end}")
+        print(f"Checked: {len(year_cols)} years ({min(year_cols)}-{max(year_cols)})")
 
     return set(complete_countries)
 
@@ -263,7 +255,7 @@ def add_row_timeseries(
         row_mask = result.index.get_level_values("iso3c") == world_code
         row_count = sum(row_mask)
         analysis_count = len(analysis_iso3c)
-        logger.info(
+        print(
             f"Added {row_count} ROW entries (should be 1) alongside "
             f"{analysis_count} countries with complete data"
         )
@@ -333,7 +325,7 @@ def get_cumulative_budget_from_timeseries(
         )
 
     if verbose:
-        logger.info(
+        print(
             f"Calculated cumulative budget from {allocation_year} to "
             f"{max(year_cols)} ({len(year_cols)} years)"
         )

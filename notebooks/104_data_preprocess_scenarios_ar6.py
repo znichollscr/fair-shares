@@ -49,8 +49,6 @@ from fair_shares.library.exceptions import (
     ConfigurationError,
     DataProcessingError,
 )
-from fair_shares.library.paths import resolve_source_path
-from fair_shares.library.preprocessing import emissions_path
 from fair_shares.library.utils import (
     build_source_id,
     determine_processing_categories,
@@ -61,6 +59,7 @@ from fair_shares.library.utils import (
     interpolate_scenarios_data,
     process_iamc_zip,
 )
+from fair_shares.library.preprocessing import emissions_path
 from fair_shares.library.utils.units import _clean_unit_string
 
 # %% tags=["parameters"]
@@ -71,7 +70,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 active_scenario_source = None  # NEW
 source_id = None
 
@@ -91,12 +89,11 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -188,7 +185,7 @@ emissions_data_parameters = emissions_config["data_parameters"]
 
 # Construct intermediate_dir from output directory structure
 intermediate_dir_str = f"output/{source_id}/intermediate/scenarios"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Check required parameters are specified
@@ -301,7 +298,7 @@ print(f"Desired scenarios: {desired_climate_assessments}")
 # %%
 # Process the scenario source
 print(f"Processing {active_target_source} scenarios...")
-df = process_iamc_zip(resolve_source_path(scenario_path))
+df = process_iamc_zip(project_root / scenario_path)
 
 # %% [markdown]
 # ## Load historical emissions for harmonisation
@@ -312,7 +309,7 @@ df = process_iamc_zip(resolve_source_path(scenario_path))
 
 # %%
 print("Loading historical emissions data for harmonisation...")
-emiss_intermediate_dir = resolve_source_path(f"output/{source_id}/intermediate/emissions")
+emiss_intermediate_dir = project_root / f"output/{source_id}/intermediate/emissions"
 emissions_world_key = emissions_data_parameters.get("world_key")
 
 historical_emissions_data = {}

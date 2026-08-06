@@ -30,7 +30,6 @@ import yaml
 from pyprojroot import here
 
 from fair_shares.library.exceptions import ConfigurationError
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import build_source_id, ensure_string_year_columns
 
 # %% tags=["parameters"]
@@ -41,7 +40,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -58,12 +56,11 @@ if emission_category is not None:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -122,7 +119,7 @@ if gdp_variant not in ["PPP", "MER"]:
 
 # Construct source-specific intermediate_dir
 intermediate_dir_str = f"output/{source_id}/intermediate/gdp"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Print out the parameters for debugging
@@ -155,7 +152,7 @@ else:  # MER
     value_col_name = "gdp-mer"
 
 # Read CSV, skip metadata rows (first 4 rows are headers/notes)
-gdp_data = pd.read_csv(resolve_source_path(gdp_path), skiprows=4)
+gdp_data = pd.read_csv(project_root / gdp_path, skiprows=4)
 
 # Keep only country, iso3, and years columns
 id_cols = ["Country Name", "Country Code"]

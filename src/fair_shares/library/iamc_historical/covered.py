@@ -117,7 +117,9 @@ def build_covered(
         .set_index("variable")["unit"]
         .to_dict()
     )
-    factors = _conversion_factors(units_by_variable, output_unit=output_unit, gwp=gwp)
+    factors = _conversion_factors(
+        units_by_variable, output_unit=output_unit, gwp=gwp
+    )
 
     converted = df[df["variable"].isin(required)].copy()
     converted["value"] = converted["value"] * converted["variable"].map(factors)
@@ -133,9 +135,11 @@ def build_covered(
         covered = covered - wide[subtract].sum(axis=1)
 
     anchor = add[0]
-    anchor_rows = df[df["variable"] == anchor][
-        ["model", "scenario", "region", "year"]
-    ].drop_duplicates(subset=["scenario", "region", "year"])
+    anchor_rows = (
+        df[df["variable"] == anchor][
+            ["model", "scenario", "region", "year"]
+        ].drop_duplicates(subset=["scenario", "region", "year"])
+    )
     covered_df = covered.reset_index(name="value").merge(
         anchor_rows, on=["scenario", "region", "year"], how="left"
     )

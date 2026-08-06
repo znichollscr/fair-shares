@@ -152,7 +152,7 @@ def load_allocation_data(
         else:
             responsibility_emissions_data[category] = emissions_data[category]
 
-    logger.info(
+    print(
         f"  Loaded data for {len(final_categories)} categories: "
         f"{', '.join(final_categories)}"
     )
@@ -178,7 +178,7 @@ def load_allocation_data(
     country_gini_df = country_gini_df.set_index(["iso3c", "unit"])
     validate_stationary_dataframe(country_gini_df, "Country Gini", ["gini"])
 
-    logger.info("  Socioeconomic data loaded and validated")
+    print("  Socioeconomic data loaded and validated")
 
     # Net-negative emissions metadata
     net_negative_metadata_path = processed_dir / "net_negative_emissions_metadata.yaml"
@@ -300,11 +300,11 @@ def run_all_allocations(
             target_src = target
 
         if not allocs:
-            logger.info(f"  Skipping {category}: no compatible approaches")
+            print(f"  Skipping {category}: no compatible approaches")
             continue
 
         mode = "budget" if is_budget else "pathway"
-        logger.info(f"\n  {category} ({mode}) — {len(allocs)} approaches")
+        print(f"\n  {category} ({mode}) — {len(allocs)} approaches")
 
         rows, frames = run_and_save_category_allocations(
             allocations=allocs,
@@ -329,7 +329,7 @@ def run_all_allocations(
         )
         param_manifest_rows.extend(rows)
         absolute_frames.extend(frames)
-        logger.info(f"    {len(rows)} parameter combinations processed")
+        print(f"    {len(rows)} parameter combinations processed")
 
     # Save manifest, README and citations
     if write:
@@ -361,12 +361,12 @@ def print_results_summary(
     """Print a clean summary of completed allocations."""
     executed = sorted({row["approach"] for row in param_manifest_rows})
 
-    logger.info("\n" + "=" * 60)
-    logger.info("ALLOCATIONS COMPLETE")
-    logger.info("=" * 60)
-    logger.info(f"\nApproaches: {', '.join(executed)}")
-    logger.info(f"Parameter combinations: {len(param_manifest_rows)}")
-    logger.info(f"\nOutput: {output_dir}")
+    print("\n" + "=" * 60)
+    print("ALLOCATIONS COMPLETE")
+    print("=" * 60)
+    print(f"\nApproaches: {', '.join(executed)}")
+    print(f"Parameter combinations: {len(param_manifest_rows)}")
+    print(f"\nOutput: {output_dir}")
 
     # File listing with sizes
     for pattern, label in [
@@ -376,10 +376,10 @@ def print_results_summary(
     ]:
         files = sorted(output_dir.glob(pattern))
         if files:
-            logger.info(f"\n  {label}:")
+            print(f"\n  {label}:")
             for f in files:
                 size_kb = f.stat().st_size / 1024
-                logger.info(f"    {f.name} ({size_kb:.1f} KB)")
+                print(f"    {f.name} ({size_kb:.1f} KB)")
 
 
 # ---------------------------------------------------------------------------

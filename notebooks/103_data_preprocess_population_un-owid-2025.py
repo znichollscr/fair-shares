@@ -31,7 +31,6 @@ import pandas as pd
 import yaml
 from pyprojroot import here
 
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.utils import build_source_id, ensure_string_year_columns
 
 # %% tags=["parameters"]
@@ -42,7 +41,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -59,12 +57,11 @@ if emission_category is not None:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -121,7 +118,7 @@ projected_variant = population_config["data_parameters"].get("projected_variant"
 
 # Construct source-specific intermediate_dir
 intermediate_dir_str = f"output/{source_id}/intermediate/population"
-intermediate_dir = resolve_source_path(intermediate_dir_str)
+intermediate_dir = project_root / intermediate_dir_str
 intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Print out the parameters for debugging
@@ -140,7 +137,7 @@ print(f"Intermediate directory: {intermediate_dir_str}")
 # Process historical population data (OWID)
 print("Processing historical population data...")
 # Read the CSV file
-historical_df = pd.read_csv(resolve_source_path(population_historical_path))
+historical_df = pd.read_csv(project_root / population_historical_path)
 
 # Filter out rows where Code is NaN (these are typically regional aggregates without ISO codes)
 historical_df = historical_df[historical_df["Code"].notna()]
@@ -172,7 +169,7 @@ print(f"Historical population data processed: {historical_df.shape}")
 print("Processing projected population data...")
 # Read the Excel file with appropriate header
 projected_df = pd.read_excel(
-    resolve_source_path(population_projected_path), sheet_name="Median", header=16
+    project_root / population_projected_path, sheet_name="Median", header=16
 )
 
 # Print available headers

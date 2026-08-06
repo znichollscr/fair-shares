@@ -180,36 +180,6 @@ class DataSourceRef(BaseModel):
     )
 
 
-class BunkersDataParameters(BaseModel):
-    """Parameters for reading a bunker-fuel emissions source."""
-
-    sheet_name: str = Field(..., description="Worksheet holding the bunker column")
-    header_row: int = Field(
-        ..., description="0-based row index of the header, as pandas `header=`"
-    )
-    bunker_column: str = Field(..., description="Column holding bunker CO2")
-
-
-class BunkersSourceConfig(BaseModel):
-    """Configuration for an international bunker fuel CO2 source.
-
-    Budget targets subtract bunker CO2 from the global remaining carbon budget
-    before any country is allocated a share, so this selection moves every
-    allocated total. It is a first-class source for exactly that reason: it
-    used to be a path hardcoded in notebook 108, which meant swapping vintages
-    silently changed every number with nothing in the source id to show for it.
-    """
-
-    path: str = Field(..., description="Path to the bunker fuel data file")
-    data_parameters: BunkersDataParameters
-
-    @field_validator("path")
-    @classmethod
-    def validate_path_exists(cls, v: str) -> str:
-        """Validate that the path exists (relative to the data directory)."""
-        return validate_path_exists(v, "Bunkers data file")
-
-
 class AdjustmentsConfig(BaseModel):
     """RCB adjustment configuration — timeseries-based (NGHGI-consistent)."""
 
@@ -395,9 +365,6 @@ class DataSourcesConfig(BaseModel):
     lulucf: dict[str, LulucfSourceConfig] = Field(
         default_factory=dict, description="Available LULUCF data sources"
     )
-    bunkers: dict[str, BunkersSourceConfig] = Field(
-        default_factory=dict, description="Available bunker fuel CO2 sources"
-    )
     scenarios: dict[str, ScenarioSourceConfig] = Field(
         default_factory=dict, description="Available scenario data sources (e.g. ar6)"
     )
@@ -429,9 +396,6 @@ class DataSourcesConfig(BaseModel):
     active_gini_source: str | None = Field(None, description="Active Gini data source")
     active_lulucf_source: str | None = Field(
         None, description="Active LULUCF data source"
-    )
-    active_bunkers_source: str | None = Field(
-        None, description="Active bunker fuel CO2 source"
     )
     active_target_source: str | None = Field(
         None, description="Active target source (e.g. pathway scenarios or RCBs)"
@@ -503,18 +467,6 @@ class DataSourcesConfig(BaseModel):
                 f"LULUCF source '{self.active_lulucf_source}' not recognized.\n\n"
                 f"{suggestion}\n\n"
                 f"Available LULUCF sources: {', '.join(valid_options)}"
-            )
-        if (
-            self.active_bunkers_source
-            and self.bunkers
-            and self.active_bunkers_source not in self.bunkers
-        ):
-            valid_options = list(self.bunkers.keys())
-            suggestion = suggest_similar(self.active_bunkers_source, valid_options)
-            raise ConfigurationError(
-                f"Bunkers source '{self.active_bunkers_source}' not recognized.\n\n"
-                f"{suggestion}\n\n"
-                f"Available bunkers sources: {', '.join(valid_options)}"
             )
         if self.active_target_source and self.active_target_source not in self.targets:
             valid_options = list(self.targets.keys())

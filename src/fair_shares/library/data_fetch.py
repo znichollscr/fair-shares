@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
-import logging
 import os
 import shutil
 import zipfile
@@ -67,9 +66,6 @@ AUTO_FETCH_ENV = "FAIR_SHARES_AUTO_FETCH"
 PROVENANCE_FILENAME = "PROVENANCE.md"
 
 _CHUNK = 1 << 20
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -455,7 +451,7 @@ def _check_existing(
         )
 
     for result in damaged:
-        logger.info(
+        print(
             f"[fair-shares] {result.target.name} is damaged ({result.detail}); "
             "rebuilding it."
         )
@@ -684,7 +680,7 @@ def ensure_target_present(path: Path, *, rel: str) -> None:
     if source.tier == "bundled":
         return
 
-    logger.info(
+    print(
         f"[fair-shares] {path.name} is missing; downloading {name} "
         f"({source.version}) — {source.license}."
     )

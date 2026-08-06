@@ -38,13 +38,11 @@ import pandas as pd
 import yaml
 from pyprojroot import here
 
-from fair_shares.library import paths as fs_paths
 from fair_shares.library.exceptions import (
     ConfigurationError,
     DataLoadingError,
     DataProcessingError,
 )
-from fair_shares.library.paths import resolve_source_path
 from fair_shares.library.preprocessing import (
     complete_gini,
     emissions_path,
@@ -75,7 +73,6 @@ active_gdp_source = None
 active_population_source = None
 active_gini_source = None
 active_lulucf_source = None
-active_bunkers_source = None
 source_id = None
 
 # %%
@@ -94,12 +91,11 @@ if _running_via_papermill:
             population=active_population_source,
             gini=active_gini_source,
             lulucf=active_lulucf_source,
-            bunkers=active_bunkers_source,
             target=active_target_source,
             emission_category=emission_category,
         )
 
-    config_path = resolve_source_path(f"output/{source_id}/config.yaml")
+    config_path = here() / f"output/{source_id}/config.yaml"
 
     print(f"Loading config from: {config_path}")
     with open(config_path) as f:
@@ -185,7 +181,7 @@ gdp_world_key = gdp_data_parameters.get("world_key")
 active_population_projection = population_data_parameters.get("projected_variant")
 population_historical_world_key = population_data_parameters.get("historical_world_key")
 population_projected_world_key = population_data_parameters.get("projected_world_key")
-rcb_yaml_path = resolve_source_path(rcb_config.get("path"))
+rcb_yaml_path = project_root / rcb_config.get("path")
 
 # Get RCB adjustment configuration (NGHGI-consistent timeseries)
 # Import here (not top-level) to avoid circular import — utils must initialise first
@@ -213,15 +209,15 @@ root_intermediate_dir_str = f"output/{source_id}/intermediate"
 
 # Create output processed intermediate directory
 processed_intermediate_dir_str = f"output/{source_id}/intermediate/processed"
-processed_intermediate_dir = resolve_source_path(processed_intermediate_dir_str)
+processed_intermediate_dir = project_root / processed_intermediate_dir_str
 processed_intermediate_dir.mkdir(parents=True, exist_ok=True)
 
 # Ensure all intermediate_dirs are Path objects and exist
-emiss_intermediate_dir = resolve_source_path(emiss_intermediate_dir_str)
-gdp_intermediate_dir = resolve_source_path(gdp_intermediate_dir_str)
-pop_intermediate_dir = resolve_source_path(pop_intermediate_dir_str)
-gini_intermediate_dir = resolve_source_path(gini_intermediate_dir_str)
-root_intermediate_dir = resolve_source_path(root_intermediate_dir_str)
+emiss_intermediate_dir = project_root / emiss_intermediate_dir_str
+gdp_intermediate_dir = project_root / gdp_intermediate_dir_str
+pop_intermediate_dir = project_root / pop_intermediate_dir_str
+gini_intermediate_dir = project_root / gini_intermediate_dir_str
+root_intermediate_dir = project_root / root_intermediate_dir_str
 
 emiss_intermediate_dir.mkdir(parents=True, exist_ok=True)
 gdp_intermediate_dir.mkdir(parents=True, exist_ok=True)
@@ -355,7 +351,7 @@ for category in final_categories:
 
 # %%
 # Load region mapping to get the full list of countries
-region_mapping = pd.read_csv(resolve_source_path(region_mapping_path))
+region_mapping = pd.read_csv(project_root / region_mapping_path)
 all_region_countries = set(region_mapping["iso3c"].unique())
 
 # Create summary dataframe
@@ -633,8 +629,8 @@ rcb_df = load_and_process_rcbs(
     world_fossil_emissions=world_fossil_emissions,
     emission_category=emission_category,
     adjustments_config=adjustments_config,
-    data_dir=fs_paths.data_dir(),
-    output_dir=fs_paths.output_dir(),
+    data_dir=project_root / "data",
+    output_dir=project_root / "output",
     source_id=source_id,
     actual_bm_lulucf_emissions=actual_bm_lulucf,
     verbose=True,

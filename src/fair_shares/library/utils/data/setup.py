@@ -7,8 +7,6 @@ that prepares input data for fair share allocations.
 
 from __future__ import annotations
 
-import logging
-import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -20,8 +18,6 @@ from fair_shares.library.exceptions import (
     MissingPipelineDependency,
 )
 from fair_shares.library.paths import DATA_DIR_ENV, OUTPUT_DIR_ENV
-
-logger = logging.getLogger(__name__)
 
 
 def _enumerate_required_files(
@@ -162,10 +158,6 @@ def generate_snakemake_command(
     ]
 
     # Pass lulucf source (required for NGHGI corrections)
-    bunkers_source = active_sources.get("bunkers")
-    if bunkers_source:
-        command.append(f"active_bunkers_source={bunkers_source}")
-
     lulucf_source = active_sources.get("lulucf")
     if lulucf_source:
         command.append(f"active_lulucf_source={lulucf_source}")
@@ -204,36 +196,6 @@ def _extract_notebook_error(stderr: str) -> str | None:
     if error_lines:
         return "\n".join(error_lines).strip()
     return None
-
-
-def _subprocess_env() -> dict[str, str]:
-    """Return an environment that resolves paths exactly as this process does.
-
-    The build runs in a subprocess, so a ``data_dir`` / ``output_dir`` passed
-    in Python reaches it only if it is exported. Without this the subprocess
-    falls back to the surrounding checkout, and a caller that asked for
-    directories elsewhere gets its tree built in one place and verified in
-    another — a missing-files error that names neither directory.
-
-    Resolution is deliberate rather than a straight copy of ``os.environ``:
-    :func:`paths.data_dir` and :func:`paths.output_dir` apply the argument,
-    the per-process cache, the environment and the checkout in priority order,
-    so exporting their answers keeps parent and child in agreement whichever
-    level won.
-
-    Returns
-    -------
-    dict[str, str]
-        The current environment plus ``FAIR_SHARES_DATA_DIR`` and
-        ``FAIR_SHARES_OUTPUT_DIR``.
-    """
-    from fair_shares.library import paths
-
-    return {
-        **os.environ,
-        DATA_DIR_ENV: str(paths.data_dir()),
-        OUTPUT_DIR_ENV: str(paths.output_dir()),
-    }
 
 
 def execute_snakemake_setup(
@@ -285,7 +247,6 @@ def execute_snakemake_setup(
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
-            env=_subprocess_env(),
         )
         if result.returncode != 0:
             # Try to extract the notebook error first
@@ -446,34 +407,11 @@ def resolve_data_setup(
         resolved_output, source_id, emission_category, target=target
     )
 
-    # Generate Snakemake command.
-    #
-    # Snakemake gets the *resolved* sources, never the raw ones. There are two
-    # defaulting sites -- ``build_data_config`` above, which fills in the sole
-    # configured bunkers source, and the Snakefile's own
-    # ``config.get("active_bunkers_source", None)``, which does not -- so
-    # handing the raw mapping to Snakemake made them disagree, in three
-    # mutually inconsistent ways at once:
-    #
-    # * ``source_id`` here included the bunkers source, while the Snakefile's
-    #   own ``SOURCE_ID`` did not, so Snakemake built one directory and this
-    #   function then verified a different one;
-    # * the composed ``config.yaml`` recorded ``gcb-2024`` (it goes back
-    #   through ``build_data_config``) while the tree it sat in claimed no
-    #   bunkers source at all;
-    # * notebook 108 read the Snakefile's value and died on
-    #   ``config["bunkers"][None]``.
-    #
-    # A caller that names a bunkers source was never affected, which is why
-    # this survived: every allocation run names one.
-    resolved_sources = dict(active_sources)
-    if data_config.active_bunkers_source is not None:
-        resolved_sources["bunkers"] = data_config.active_bunkers_source
-
+    # Generate Snakemake command
     command = generate_snakemake_command(
         emission_category,
         target,
-        resolved_sources,
+        active_sources,
         paths["target_file"],
         harmonisation_year=harmonisation_year,
     )
@@ -500,12 +438,12 @@ def resolve_data_setup(
     }
 
     if verbose:
-        logger.info("CUSTOM DATA PIPELINE SETUP")
-        logger.info(f"Target: {target}")
-        logger.info(f"Emission category: {emission_category}")
-        logger.info(f"Source ID: {source_id}")
-        logger.info(f"Target file: {paths['target_file']}")
-        logger.info("")
+        print("CUSTOM DATA PIPELINE SETUP")
+        print(f"Target: {target}")
+        print(f"Emission category: {emission_category}")
+        print(f"Source ID: {source_id}")
+        print(f"Target file: {paths['target_file']}")
+        print()
 
     return setup_info
 
@@ -556,15 +494,15 @@ def build_data_setup(
     command = setup_info["command"]
 
     if verbose:
-        logger.info("Running Snakemake...")
-        logger.info("Command:", " ".join(command))
-        logger.info("")
+        print("Running Snakemake...")
+        print("Command:", " ".join(command))
+        print()
 
     stdout, stderr = execute_snakemake_setup(command, resolved_root, timeout)
     setup_info["execution"] = {"success": True, "stdout": stdout, "stderr": stderr}
 
     if verbose:
-        logger.info("Data setup completed successfully!")
+        print("Data setup completed successfully!")
 
     all_files_exist, file_info = verify_data_setup(
         setup_info["paths"]["processed_dir"],
@@ -672,16 +610,16 @@ def setup_data(
     all_files_exist = setup_info["verification"]["all_files_exist"]
 
     if verbose:
-        logger.info("\nDATA VERIFICATION")
+        print("\nDATA VERIFICATION")
         for file_type, info in file_info.items():
             status = "OK" if info["exists"] else "MISSING"
             size_info = f" ({info['size_mb']:.1f} MB)" if info["exists"] else ""
-            logger.info(f"  {file_type}: {status}{size_info}")
+            print(f"  {file_type}: {status}{size_info}")
 
         if all_files_exist:
-            logger.info("\nAll required data files found!")
+            print("\nAll required data files found!")
         else:
-            logger.info("\nSome data files are missing.")
+            print("\nSome data files are missing.")
 
     if not all_files_exist:
         missing = sorted(k for k, v in file_info.items() if not v["exists"])
