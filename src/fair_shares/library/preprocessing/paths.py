@@ -32,6 +32,9 @@ from pathlib import Path
 # Kept in sync with ``_LULUCF_DEPENDENT`` in
 # ``fair_shares.library.utils.data.config.build_source_id`` and the
 # Snakefile's ``_needs_lulucf`` predicate.
+# TWO SOURCES OF TRUTH: the same set of LULUCF-dependent categories is also
+# ``_LULUCF_DEPENDENT`` in ``utils.data.config.build_source_id`` and
+# ``_needs_lulucf`` in the Snakefile. Nothing checks that the three agree.
 NGHGI_CORRECTED_CATEGORIES: frozenset[str] = frozenset(
     {
         "co2-lulucf",

@@ -102,6 +102,10 @@ def build_data_paths(
     dict[str, Path]
         Dictionary containing all relevant paths
     """
+    # TWO SOURCES OF TRUTH: this resolves against whatever `output_dir` the
+    # caller passed, while the Snakefile builds into a working-directory-
+    # relative `output/{SOURCE_ID}` of its own. They coincide only when the
+    # caller happens to pass the directory Snakemake would have chosen anyway.
     base_dir = Path(output_dir) / source_id
     processed_dir = base_dir / "intermediate" / "processed"
 

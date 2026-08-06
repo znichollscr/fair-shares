@@ -78,6 +78,13 @@ if rcb_generator is not None:
 # ---------------------------------------------------------------------------
 
 # Source ID for output paths — delegates to config.py (single source of truth)
+# TWO SOURCES OF TRUTH: the Python side computes its own ``source_id`` in
+# ``utils.data.config.build_data_config`` from the caller's ``active_sources``
+# mapping, while this computes one from Snakemake's ``--config`` values. Same
+# function, different inputs. Whenever one side applies a default the other
+# does not, Snakemake builds one directory and ``setup_data`` then verifies a
+# different one -- reported as "required data files are missing after setup",
+# which does not point at the cause.
 SOURCE_ID = build_source_id(
     emissions=active_emissions_source or "unknown",
     gdp=active_gdp_source or "unknown",
@@ -89,6 +96,10 @@ SOURCE_ID = build_source_id(
     rcb_generator=rcb_generator,
 )
 
+# TWO SOURCES OF TRUTH: this is working-directory-relative, while the Python
+# side resolves an explicitly passed ``output_dir`` (see ``build_data_paths``).
+# A caller who passes one gets a build that writes here and a verification that
+# looks there, with no error saying so.
 OUTPUT_DIR = f"output/{SOURCE_ID}"
 NOTEBOOK_DIR = "notebooks"
 
@@ -138,6 +149,9 @@ else:
 # ``fair_shares.library.utils.data.config.build_source_id`` and
 # ``NGHGI_CORRECTED_CATEGORIES`` in ``fair_shares.library.preprocessing.paths``.
 # Bunker data (previously bundled in 107) is now a separate rule below.
+# TWO SOURCES OF TRUTH: this is the third copy of the LULUCF-dependent
+# category set (see ``_LULUCF_DEPENDENT`` and ``NGHGI_CORRECTED_CATEGORIES``).
+# Nothing checks that the three agree; disagreement is silent.
 _needs_lulucf = emission_category in ("co2", "co2-lulucf", "all-ghg")
 
 # Bunker data is needed for all non-pathway targets (RCBs must subtract

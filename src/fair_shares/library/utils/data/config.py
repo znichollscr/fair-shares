@@ -198,6 +198,14 @@ def build_source_id(
     # Kept in sync with ``NGHGI_CORRECTED_CATEGORIES`` in
     # ``fair_shares.library.preprocessing.paths`` and Snakefile's
     # ``_needs_lulucf``.
+    # TWO SOURCES OF TRUTH: this set is stated three times -- here, as
+    # ``NGHGI_CORRECTED_CATEGORIES`` in ``preprocessing.paths``, and as
+    # ``_needs_lulucf`` in the Snakefile. The comments above say "kept in sync
+    # with", which is the tell: they are synchronised by convention and by
+    # nothing else. Adding a LULUCF-dependent category to two of the three
+    # gives a run whose output directory says LULUCF did not matter, whose
+    # notebook 107 never runs, and whose consumer reads the uncorrected file --
+    # all without an error.
     _LULUCF_DEPENDENT = {"co2", "co2-lulucf", "all-ghg"}
 
     parts = [emissions, gdp, population, gini]

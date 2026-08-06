@@ -220,6 +220,13 @@ def create_coverage_summary(
     logger.info(f"Countries missing population data: {sorted(missing_population)}")
     logger.info(f"Countries missing Gini data: {sorted(missing_gini)}")
 
+    # TWO SOURCES OF TRUTH: a composite category runs this once per
+    # decomposition pass, and every pass writes the same filename. The file
+    # that survives therefore describes whichever pass happened to run last,
+    # not the category as a whole -- an all-ghg tree reports the same
+    # `has_emissions` count as a co2-ffi one despite allocating a category far
+    # fewer countries have. Nothing warns, because from inside one pass there
+    # is nothing wrong. `in_analysis` is unaffected and is what consumers read.
     # Save coverage summary, unless the caller only wants the frame. Writing
     # is optional rather than assumed: a caller working in memory should not
     # have to invent a directory to receive a file it will not read.

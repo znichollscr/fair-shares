@@ -58,6 +58,12 @@ TARGET = "rcbs"  # this API is for remaining-carbon-budget allocations only
 # to build each. The two ``combined`` baskets are the sum of their CO2 and
 # non-CO2 parts (all-ghg = co2 + non-co2 from 2000; all-ghg-ex = co2-ffi +
 # non-co2 from 1850). Mirrors the coverage the distributed pathways carry.
+# TWO SOURCES OF TRUTH: the parts a composite category decomposes into are
+# stated here and again in ``utils.data.config.get_final_categories``. They
+# must agree -- ``build_history`` reads the files the allocator wrote -- but
+# nothing checks it. They currently agree for RCB targets only; for a pathway
+# target ``get_final_categories`` returns the composite undecomposed, so
+# ``build_history`` raises ``FileNotFoundError`` on a pathway-built tree.
 COVERAGE_PARTS: dict[str, dict[str, tuple[str, ...]]] = {
     "co2-ffi": {"co2-ffi": ("co2-ffi",)},
     "all-ghg-ex-co2-lulucf": {

@@ -18,6 +18,11 @@ if TYPE_CHECKING:
     from fair_shares.library.utils.dataframes import TimeseriesDataFrame
 
 
+# TWO SOURCES OF TRUTH: this returns the quantile as *text*, and every
+# consumer compares it as a *float*. They agree only because the value reaches
+# consumers through a CSV, and ``pandas.read_csv`` does the conversion on the
+# way. Build the frame in memory instead and the strings survive, at which
+# point every ``quantile == 0.5`` filter silently matches nothing.
 def parse_rcb_scenario(scenario_string: str) -> tuple[str, str]:
     """
     Parse RCB scenario string into climate assessment and quantile.
