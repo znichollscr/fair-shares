@@ -276,7 +276,7 @@ def compute_shares(
         emission_category=category,
         target_source=target,
         harmonisation_year=harmonisation_year,
-        nghgi_years=data.nghgi_years,
+        lulucf_years=data.lulucf_years,
     )
     if len(results) != 1:
         raise ConfigurationError(

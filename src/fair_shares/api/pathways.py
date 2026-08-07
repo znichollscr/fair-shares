@@ -203,7 +203,7 @@ def _validate(
     request: PathwayRequest,
     category: str,
     harmonisation_year: int | None,
-    nghgi_years: tuple[int, int] | None,
+    lulucf_years: tuple[int, int] | None,
 ) -> None:
     """Apply every check ``run_parameter_grid`` would have applied.
 
@@ -220,8 +220,9 @@ def _validate(
         The emission category being allocated.
     harmonisation_year
         The year scenarios are anchored to observed emissions.
-    nghgi_years
-        The run's NGHGI-consistent LULUCF record, or None when it has none.
+    lulucf_years
+        The dedicated LULUCF record's year range, or None when the land flux
+        came from the emissions source instead.
 
     Raises
     ------
@@ -245,7 +246,7 @@ def _validate(
     validate_allocation_years_against_harmonisation(
         as_grid, harmonisation_year, PATHWAY_TARGET
     )
-    validate_allocation_year_for_co2(as_grid, category, nghgi_years)
+    validate_allocation_year_for_co2(as_grid, category, lulucf_years)
     validate_allocation_parameters(
         request.approach,
         {key.replace("-", "_"): value for key, value in request.parameters.items()},
@@ -313,7 +314,7 @@ def allocate_pathway(
             "request."
         )
 
-    _validate(request, category, harmonisation_year, data.nghgi_years)
+    _validate(request, category, harmonisation_year, data.lulucf_years)
 
     emissions = data.parts[category]
     # `harmonisation_year` is deliberately **not** forwarded. It constrains

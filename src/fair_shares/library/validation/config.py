@@ -96,10 +96,10 @@ def _raise_nghgi_year_error(
     param_name: str,
     year: int,
     emission_category: str,
-    nghgi_years: tuple[int, int],
+    lulucf_years: tuple[int, int],
 ) -> None:
     """Raise for a year before the LULUCF source's own record begins."""
-    first, last = nghgi_years
+    first, last = lulucf_years
     raise AllocationError(
         f"Configuration error for approach '{approach}':\n"
         f"  {param_name} = {year} is before {first}\n\n"
@@ -118,7 +118,7 @@ def _raise_nghgi_year_error(
 def validate_allocation_year_for_co2(
     allocations_config: dict[str, list[dict[str, Any]]],
     emission_category: str,
-    nghgi_years: tuple[int, int] | None = None,
+    lulucf_years: tuple[int, int] | None = None,
 ) -> None:
     """Bound a NGHGI-corrected allocation by the land record it was corrected to.
 
@@ -146,19 +146,20 @@ def validate_allocation_year_for_co2(
         Configuration dict with approach names as keys
     emission_category : str
         Emission category (e.g. "co2-ffi", "co2", "all-ghg")
-    nghgi_years : tuple[int, int] or None
-        First and last year of the NGHGI-consistent LULUCF record the run was
-        corrected to, or None when it applied no correction.
+    lulucf_years : tuple[int, int] or None
+        First and last year of the dedicated LULUCF record the land flux came
+        from, or None when it came from the emissions source and so carries
+        that source's own range.
 
     Raises
     ------
     AllocationError
         If a year parameter falls before the land record begins.
     """
-    if emission_category not in LULUCF_CATEGORIES or nghgi_years is None:
+    if emission_category not in LULUCF_CATEGORIES or lulucf_years is None:
         return
 
-    first = int(nghgi_years[0])
+    first = int(lulucf_years[0])
 
     for approach, params_list in allocations_config.items():
         is_budget = approach.endswith("-budget")
@@ -178,7 +179,7 @@ def validate_allocation_year_for_co2(
                             param_name,
                             year,
                             emission_category,
-                            (first, int(nghgi_years[1])),
+                            (first, int(lulucf_years[1])),
                         )
 
 

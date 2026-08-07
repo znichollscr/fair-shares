@@ -24,7 +24,7 @@ from fair_shares.library.validation.config import validate_allocation_year_for_c
 
 # What the Melo NGHGI dataset actually covers. Every test in the first class
 # describes a run that loaded it.
-NGHGI_YEARS = (2000, 2023)
+LULUCF_YEARS = (2000, 2023)
 
 
 class TestValidateAllocationYearForCo2:
@@ -40,21 +40,21 @@ class TestValidateAllocationYearForCo2:
         with pytest.raises(
             AllocationError, match="allocation_year = 1850 is before 2000"
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_budget_allocation_year_at_2000_passes(self):
         """allocation_year = 2000 with co2 should pass."""
         config = {
             "equal-per-capita-budget": [{"allocation_year": 2000}],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_budget_allocation_year_above_1990_passes(self):
         """allocation_year > 2000 with co2 should pass."""
         config = {
             "equal-per-capita-budget": [{"allocation_year": 2020}],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- first_allocation_year (pathway approaches) ---
 
@@ -66,14 +66,14 @@ class TestValidateAllocationYearForCo2:
         with pytest.raises(
             AllocationError, match="first_allocation_year = 1980 is before 2000"
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_pathway_first_allocation_year_at_2000_passes(self):
         """first_allocation_year = 2000 with co2 should pass."""
         config = {
             "equal-per-capita": [{"first_allocation_year": 2000}],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- pre_allocation_responsibility_year ---
 
@@ -91,7 +91,7 @@ class TestValidateAllocationYearForCo2:
             AllocationError,
             match="pre_allocation_responsibility_year = 1850 is before 2000",
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_pre_allocation_responsibility_year_at_2000_passes(self):
         """pre_allocation_responsibility_year = 2000 with co2 should pass."""
@@ -103,7 +103,7 @@ class TestValidateAllocationYearForCo2:
                 }
             ],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_pre_allocation_responsibility_year_above_1990_passes(self):
         """pre_allocation_responsibility_year > 2000 with co2 should pass."""
@@ -115,14 +115,14 @@ class TestValidateAllocationYearForCo2:
                 }
             ],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_pre_allocation_responsibility_year_absent_passes(self):
         """Missing pre_allocation_responsibility_year should pass (default is 2000)."""
         config = {
             "per-capita-adjusted": [{"first_allocation_year": 2020}],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- kebab-case parameter names ---
 
@@ -140,7 +140,7 @@ class TestValidateAllocationYearForCo2:
             AllocationError,
             match="pre_allocation_responsibility_year = 1850 is before 2000",
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_pre_allocation_responsibility_year_kebab_case_at_2000_passes(self):
         """Kebab-case pre-allocation-responsibility-year = 2000 with co2 should pass."""
@@ -152,7 +152,7 @@ class TestValidateAllocationYearForCo2:
                 }
             ],
         }
-        validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- co2-ffi (no NGHGI constraint) ---
 
@@ -166,14 +166,14 @@ class TestValidateAllocationYearForCo2:
                 }
             ],
         }
-        validate_allocation_year_for_co2(config, "co2-ffi", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2-ffi", LULUCF_YEARS)
 
     def test_co2_ffi_allows_allocation_year_before_1990(self):
         """co2-ffi has no NGHGI constraint — early allocation_year should pass."""
         config = {
             "equal-per-capita-budget": [{"allocation_year": 1850}],
         }
-        validate_allocation_year_for_co2(config, "co2-ffi", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "co2-ffi", LULUCF_YEARS)
 
     # --- all-ghg-ex-co2-lulucf (no NGHGI constraint) ---
 
@@ -187,7 +187,7 @@ class TestValidateAllocationYearForCo2:
                 }
             ],
         }
-        validate_allocation_year_for_co2(config, "all-ghg-ex-co2-lulucf", NGHGI_YEARS)
+        validate_allocation_year_for_co2(config, "all-ghg-ex-co2-lulucf", LULUCF_YEARS)
 
     # --- budget approaches with pre_allocation_responsibility_year ---
 
@@ -205,7 +205,7 @@ class TestValidateAllocationYearForCo2:
             AllocationError,
             match="pre_allocation_responsibility_year = 1850 is before 2000",
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- multiple param sets ---
 
@@ -227,7 +227,7 @@ class TestValidateAllocationYearForCo2:
             AllocationError,
             match="pre_allocation_responsibility_year = 1850 is before 2000",
         ):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     # --- error message content ---
 
@@ -242,7 +242,7 @@ class TestValidateAllocationYearForCo2:
             ],
         }
         with pytest.raises(AllocationError, match="NGHGI-consistent"):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
     def test_error_message_suggests_co2_ffi_alternative(self):
         """Error message should suggest co2-ffi as an alternative."""
@@ -255,7 +255,7 @@ class TestValidateAllocationYearForCo2:
             ],
         }
         with pytest.raises(AllocationError, match="co2-ffi"):
-            validate_allocation_year_for_co2(config, "co2", NGHGI_YEARS)
+            validate_allocation_year_for_co2(config, "co2", LULUCF_YEARS)
 
 
 class TestTheTwoPaths:
