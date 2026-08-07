@@ -53,6 +53,38 @@ from fair_shares.library.validation import (
 logger = logging.getLogger(__name__)
 
 
+# Written beside the processed emissions by the preprocessing step that applies
+# the NGHGI corrections. It is the only place the pipeline records *which years*
+# the land record actually covers, which is what bounds a LULUCF-containing
+# allocation.
+LULUCF_METADATA = Path("intermediate") / "emissions" / "lulucf_metadata.yaml"
+
+
+def read_nghgi_years(processed_dir: Path) -> tuple[int, int] | None:
+    """Return the NGHGI land record's year range for a processed tree.
+
+    Parameters
+    ----------
+    processed_dir : Path
+        The run's ``intermediate/processed`` directory.
+
+    Returns
+    -------
+    tuple of (int, int) or None
+        First and last year, or None when the run applied no NGHGI corrections
+        -- which is the same thing as having no LULUCF source, and is why a
+        LULUCF-containing category cannot be allocated from that tree.
+    """
+    path = processed_dir.parent.parent / LULUCF_METADATA
+    if not path.is_file():
+        return None
+    metadata = yaml.safe_load(path.read_text()) or {}
+    first, last = metadata.get("nghgi_start_year"), metadata.get("nghgi_end_year")
+    if first is None or last is None:
+        return None
+    return int(first), int(last)
+
+
 def load_allocation_data(
     processed_dir: Path,
     target: str,
@@ -91,6 +123,7 @@ def load_allocation_data(
     scenarios_data = {}
     rcbs_data = {}
     world_emissions_data = {}
+    nghgi_years = read_nghgi_years(processed_dir)
 
     for category in final_categories:
         # Country emissions — always available
@@ -198,6 +231,7 @@ def load_allocation_data(
         "country_population_df": country_population_df,
         "country_gini_df": country_gini_df,
         "net_negative_metadata": net_negative_metadata,
+        "nghgi_years": nghgi_years,
     }
 
 
@@ -325,6 +359,7 @@ def run_all_allocations(
             data_context=data_context,
             is_budget=is_budget,
             world_emissions=loaded_data["world_emissions_data"].get(category),
+            nghgi_years=loaded_data.get("nghgi_years"),
             write=write,
         )
         param_manifest_rows.extend(rows)
@@ -405,6 +440,7 @@ def run_and_save_category_allocations(
     data_context: dict,
     is_budget: bool,
     world_emissions: pd.DataFrame | None = None,
+    nghgi_years: tuple[int, int] | None = None,
     write: bool = True,
 ) -> tuple[list[dict[str, Any]], list[pd.DataFrame]]:
     """Run allocations for one emission *category* and save results.
@@ -466,6 +502,7 @@ def run_and_save_category_allocations(
             harmonisation_year=harmonisation_year,
             data_context=data_context,
             world_emissions=world_emissions,
+            nghgi_years=nghgi_years,
             write=write,
         )
     else:
@@ -483,6 +520,7 @@ def run_and_save_category_allocations(
             harmonisation_year=harmonisation_year,
             net_negative_metadata=net_negative_metadata,
             data_context=data_context,
+            nghgi_years=nghgi_years,
             write=write,
         )
 
@@ -529,6 +567,7 @@ def _run_budget_allocations(
     harmonisation_year: int,
     data_context: dict,
     world_emissions: pd.DataFrame,
+    nghgi_years: tuple[int, int] | None = None,
     write: bool = True,
 ) -> tuple[list[dict[str, Any]], list[pd.DataFrame]]:
     """Iterate over RCB rows and run budget allocations for each."""
@@ -547,6 +586,7 @@ def _run_budget_allocations(
         emission_category=category,
         target_source=target_source,
         harmonisation_year=harmonisation_year,
+        nghgi_years=nghgi_years,
     )
 
     for _idx, rcb_row in rcbs_df.iterrows():
@@ -631,6 +671,7 @@ def _run_pathway_allocations(
     harmonisation_year: int,
     net_negative_metadata: dict,
     data_context: dict,
+    nghgi_years: tuple[int, int] | None = None,
     write: bool = True,
 ) -> tuple[list[dict[str, Any]], list[pd.DataFrame]]:
     """Group scenarios and run pathway allocations for each group."""
@@ -671,6 +712,7 @@ def _run_pathway_allocations(
             world_scenario_emissions_ts=world_ts,
             target_source=target_source,
             harmonisation_year=harmonisation_year,
+            nghgi_years=nghgi_years,
         )
 
         for result in results:

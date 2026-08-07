@@ -461,6 +461,7 @@ def run_parameter_grid(
     emission_category: str | None = None,
     target_source: str | None = None,
     harmonisation_year: int | None = None,
+    nghgi_years: tuple[int, int] | None = None,
 ) -> list[BudgetAllocationResult | PathwayAllocationResult]:
     """
     Run allocations for all parameter combinations in a grid.
@@ -492,6 +493,10 @@ def run_parameter_grid(
     harmonisation_year : int, optional
         Year at which scenarios are harmonized to historical data.
         Required for scenario-based targets (not RCBs).
+    nghgi_years : tuple[int, int], optional
+        First and last year of the run's NGHGI-consistent LULUCF record.
+        Required for LULUCF-containing categories ("co2", "all-ghg"), which
+        cannot be allocated without one; ignored for every other category.
 
     Returns
     -------
@@ -605,9 +610,12 @@ def run_parameter_grid(
             allocations_config, harmonisation_year, target_source
         )
 
-    # Validate allocation year >= 1990 for total CO2 (NGHGI data limit)
+    # A LULUCF-containing category needs a land record, and can only be
+    # allocated over the years that record covers.
     if emission_category:
-        validate_allocation_year_for_co2(allocations_config, emission_category)
+        validate_allocation_year_for_co2(
+            allocations_config, emission_category, nghgi_years
+        )
 
     for approach, params_list in allocations_config.items():
         print(f"\nProcessing approach: {approach}")

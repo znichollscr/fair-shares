@@ -25,9 +25,11 @@ import pytest
 from fair_shares.api.pathways import (
     PathwayRequest,
     ScenarioGroup,
+    _validate,
     allocate_pathway,
     select_world_pathway,
 )
+from fair_shares.api.pipeline import ProcessedData
 from fair_shares.library.exceptions import AllocationError, ConfigurationError
 
 YEARS = [str(year) for year in range(2015, 2026)]
@@ -35,6 +37,31 @@ YEARS = [str(year) for year in range(2015, 2026)]
 # Two assessments at two quantiles: enough that a caller who filtered instead
 # of looking up would get more rows than it asked for.
 GROUPS = [("C1", 0.5), ("C1", 0.66), ("C3", 0.5), ("1.6", 0.5)]
+
+# A land record covering 2000-2023, which is what the Melo NGHGI dataset
+# actually carries. The year bound is read from this rather than assumed.
+NGHGI_YEARS = (2000, 2023)
+
+
+def processed(nghgi_years=None) -> ProcessedData:
+    """A `ProcessedData` carrying only what validation reads.
+
+    The frames are empty on purpose: every test below stops in validation, and
+    a fixture that also carried plausible emissions would invite the reader to
+    think the numbers mattered.
+    """
+    return ProcessedData(
+        category="all-ghg",
+        parts={},
+        gdp=pd.DataFrame(),
+        population=pd.DataFrame(),
+        gini=pd.DataFrame(),
+        world_emissions={},
+        rcbs=pd.DataFrame(),
+        coverage=pd.DataFrame(),
+        analysis_countries=frozenset(),
+        nghgi_years=nghgi_years,
+    )
 
 
 @pytest.fixture
@@ -116,7 +143,7 @@ class TestItWillNotFanOut:
         world = select_world_pathway(scenarios, ScenarioGroup("C1", 0.5))
         with pytest.raises(ConfigurationError, match="are lists"):
             allocate_pathway(
-                None,
+                processed(NGHGI_YEARS),
                 PathwayRequest(
                     approach="equal-per-capita",
                     parameters={"first_allocation_year": [2015, 2020]},
@@ -130,7 +157,7 @@ class TestItWillNotFanOut:
         world = select_world_pathway(scenarios, ScenarioGroup("C1", 0.5))
         with pytest.raises(ConfigurationError, match="cumulative budget"):
             allocate_pathway(
-                None,
+                processed(NGHGI_YEARS),
                 PathwayRequest(
                     approach="equal-per-capita-budget",
                     parameters={"allocation_year": 2020},
@@ -149,11 +176,11 @@ class TestTheValidationSurvives:
     `run_parameter_grid` dangerous rather than merely tidy.
     """
 
-    def test_the_nghgi_year_guard_still_applies(self, scenarios):
+    def test_a_year_before_the_land_record_is_refused(self, scenarios):
         world = select_world_pathway(scenarios, ScenarioGroup("C1", 0.5))
-        with pytest.raises(AllocationError, match="before 2000"):
+        with pytest.raises(AllocationError, match="is before 2000"):
             allocate_pathway(
-                None,
+                processed(NGHGI_YEARS),
                 PathwayRequest(
                     approach="per-capita-adjusted",
                     parameters={
@@ -163,15 +190,68 @@ class TestTheValidationSurvives:
                     scenario_group=ScenarioGroup("C1", 0.5),
                 ),
                 world,
-                # Contains LULUCF, so NGHGI-consistent land data bounds it.
+                # Contains LULUCF, so the land record's range bounds it.
                 category="all-ghg",
             )
+
+    def test_the_bound_comes_from_the_data_not_a_constant(self):
+        # 1990 is refused against a record starting in 2000 and accepted
+        # against one starting in 1980 — the same request, the same category,
+        # a different land source. The bound used to be the constant 2000
+        # whatever the run had loaded.
+        #
+        # `_validate` rather than `allocate_pathway`, because the claim is
+        # about what is admissible; going further would need real emissions
+        # for an allocation whose numbers this test says nothing about.
+        request = PathwayRequest(
+            approach="per-capita-adjusted",
+            parameters={
+                "first_allocation_year": 2020,
+                "pre_allocation_responsibility_year": 1990,
+            },
+            scenario_group=ScenarioGroup("C1", 0.5),
+        )
+        with pytest.raises(AllocationError, match="is before 2000"):
+            _validate(request, "all-ghg", None, (2000, 2023))
+        _validate(request, "all-ghg", None, (1980, 2023))
+
+    def test_an_uncorrected_run_is_not_bounded(self):
+        # No LULUCF source means no NGHGI correction, so there is no land
+        # record for a year to be "before". This used to raise against a
+        # hardcoded 2000, pointing at a parameter that was not the problem.
+        _validate(
+            PathwayRequest(
+                approach="per-capita-adjusted",
+                parameters={
+                    "first_allocation_year": 2015,
+                    "pre_allocation_responsibility_year": 1990,
+                },
+                scenario_group=ScenarioGroup("C1", 0.5),
+            ),
+            "all-ghg",
+            None,
+            None,
+        )
+
+    def test_a_category_without_lulucf_is_never_bounded(self):
+        # `all-ghg-ex-co2-lulucf` contains no LULUCF CO2, so the question does
+        # not arise whichever path the run took.
+        _validate(
+            PathwayRequest(
+                approach="equal-per-capita",
+                parameters={"first_allocation_year": 2015},
+                scenario_group=ScenarioGroup("C1", 0.5),
+            ),
+            "all-ghg-ex-co2-lulucf",
+            None,
+            None,
+        )
 
     def test_the_budget_year_parameter_is_refused(self, scenarios):
         world = select_world_pathway(scenarios, ScenarioGroup("C1", 0.5))
         with pytest.raises(AllocationError, match="first_allocation_year"):
             allocate_pathway(
-                None,
+                processed(NGHGI_YEARS),
                 PathwayRequest(
                     approach="equal-per-capita",
                     parameters={"allocation_year": 2020},
@@ -185,7 +265,7 @@ class TestTheValidationSurvives:
         world = select_world_pathway(scenarios, ScenarioGroup("C1", 0.5))
         with pytest.raises(AllocationError):
             allocate_pathway(
-                None,
+                processed(NGHGI_YEARS),
                 PathwayRequest(
                     approach="equal-per-capita",
                     parameters={"first_allocation_year": 2025},

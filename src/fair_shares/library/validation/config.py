@@ -85,9 +85,10 @@ def validate_allocation_parameters(
         )
 
 
-# Default NGHGI min year — used only as a fallback when no metadata is available.
-# The actual min year should be derived from lulucf_metadata.yaml at runtime.
-_NGHGI_MIN_YEAR_DEFAULT = 2000
+# Categories whose content includes LULUCF CO2, and which therefore cannot be
+# allocated without an NGHGI-consistent land record: "co2" is fossil plus land,
+# and "all-ghg" is built on it.
+LULUCF_CATEGORIES = frozenset({"co2", "all-ghg"})
 
 
 def _raise_nghgi_year_error(
@@ -95,19 +96,21 @@ def _raise_nghgi_year_error(
     param_name: str,
     year: int,
     emission_category: str,
-    nghgi_min_year: int,
+    nghgi_years: tuple[int, int],
 ) -> None:
-    """Raise AllocationError for year < nghgi_min_year in LULUCF-containing categories."""
+    """Raise for a year before the LULUCF source's own record begins."""
+    first, last = nghgi_years
     raise AllocationError(
         f"Configuration error for approach '{approach}':\n"
-        f"  {param_name} = {year} is before {nghgi_min_year}\n\n"
+        f"  {param_name} = {year} is before {first}\n\n"
         f"For emission_category='{emission_category}' (contains LULUCF), "
-        f"all allocations must be NGHGI-consistent. NGHGI-consistent LULUCF "
-        f"CO2 data only starts in {nghgi_min_year} — both at country level "
-        f"and world level (derived from NGHGI data).\n\n"
+        f"all allocations must be NGHGI-consistent, and this run's LULUCF "
+        f"source covers {first}-{last}. There is no inventory-convention land "
+        f"flux before {first} to allocate against.\n\n"
         f"Options:\n"
-        f"  1. Set {param_name} >= {nghgi_min_year}\n"
-        f"  2. Use emission_category='co2-ffi' or 'all-ghg-ex-co2-lulucf' "
+        f"  1. Set {param_name} >= {first}\n"
+        f"  2. Use a LULUCF source whose record starts earlier\n"
+        f"  3. Use emission_category='co2-ffi' or 'all-ghg-ex-co2-lulucf' "
         f"(no LULUCF data dependency)"
     )
 
@@ -115,19 +118,27 @@ def _raise_nghgi_year_error(
 def validate_allocation_year_for_co2(
     allocations_config: dict[str, list[dict[str, Any]]],
     emission_category: str,
-    nghgi_min_year: int | None = None,
+    nghgi_years: tuple[int, int] | None = None,
 ) -> None:
-    """
-    Enforce year parameters >= nghgi_min_year for LULUCF-containing categories.
+    """Bound a NGHGI-corrected allocation by the land record it was corrected to.
 
-    The minimum year is derived from the NGHGI data (e.g., Melo v3.1 starts
-    at 2000). No NGHGI/BM splicing is allowed — categories containing LULUCF
-    are limited to the NGHGI data range.
+    There are two ways to allocate a LULUCF-containing category, and this
+    validates one of them:
 
-    This applies to budget allocations (``allocation_year``), pathway
-    allocations (``first_allocation_year``), and pre-allocation-responsibility-adjusted
-    approaches (``pre_allocation_responsibility_year``) to ensure
-    methodological consistency.
+    **With an NGHGI correction.** The run names a LULUCF source, its country
+    emissions are re-expressed in the inventory convention, and it can only be
+    allocated over the years that record covers. Those years are read from the
+    data -- a different LULUCF source has a different range, so a constant
+    would be right for one dataset and wrong for the next.
+
+    **Without one.** The run allocates the emission source's own totals as
+    published. There is no land record to be bounded by, so there is nothing
+    here to check; ``nghgi_years=None`` says so and this returns.
+
+    The bound applies to budget allocations (``allocation_year``), pathway
+    allocations (``first_allocation_year``) and responsibility-adjusted
+    approaches (``pre_allocation_responsibility_year``) alike: all three index
+    the corrected record, so all three are bounded by it.
 
     Parameters
     ----------
@@ -135,24 +146,19 @@ def validate_allocation_year_for_co2(
         Configuration dict with approach names as keys
     emission_category : str
         Emission category (e.g. "co2-ffi", "co2", "all-ghg")
-    nghgi_min_year : int or None
-        Minimum year for NGHGI-consistent allocations (derived from data).
-        If None, uses the default (currently 2000).
+    nghgi_years : tuple[int, int] or None
+        First and last year of the NGHGI-consistent LULUCF record the run was
+        corrected to, or None when it applied no correction.
 
     Raises
     ------
     AllocationError
-        If allocation start year or pre_allocation_responsibility_year < nghgi_min_year
-        for LULUCF-containing emission categories ("co2", "all-ghg")
+        If a year parameter falls before the land record begins.
     """
-    # Resolve NGHGI min year
-    min_year = nghgi_min_year if nghgi_min_year is not None else _NGHGI_MIN_YEAR_DEFAULT
-
-    # Categories containing LULUCF: "co2" (= co2-ffi + co2-lulucf) and
-    # "all-ghg" (= co2 + non-co2, where co2 includes LULUCF).
-    _LULUCF_CATEGORIES = {"co2", "all-ghg"}
-    if emission_category not in _LULUCF_CATEGORIES:
+    if emission_category not in LULUCF_CATEGORIES or nghgi_years is None:
         return
+
+    first = int(nghgi_years[0])
 
     for approach, params_list in allocations_config.items():
         is_budget = approach.endswith("-budget")
@@ -160,30 +166,19 @@ def validate_allocation_year_for_co2(
 
         for params in params_list:
             params_snake = {k.replace("-", "_"): v for k, v in params.items()}
-            years = params_snake.get(year_param, [])
-            if not isinstance(years, (list, tuple)):
-                years = [years]
-
-            for year in years:
-                if year < min_year:
-                    _raise_nghgi_year_error(
-                        approach, year_param, year, emission_category, min_year
-                    )
-
-            # Check pre_allocation_responsibility_year
-            hist_year = params_snake.get("pre_allocation_responsibility_year")
-            if hist_year is not None:
-                hist_years = (
-                    hist_year if isinstance(hist_year, (list, tuple)) else [hist_year]
-                )
-                for hy in hist_years:
-                    if hy < min_year:
+            for param_name in (year_param, "pre_allocation_responsibility_year"):
+                value = params_snake.get(param_name)
+                if value is None:
+                    continue
+                years = value if isinstance(value, list | tuple) else [value]
+                for year in years:
+                    if year < first:
                         _raise_nghgi_year_error(
                             approach,
-                            "pre_allocation_responsibility_year",
-                            hy,
+                            param_name,
+                            year,
                             emission_category,
-                            min_year,
+                            (first, int(nghgi_years[1])),
                         )
 
 

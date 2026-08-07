@@ -23,7 +23,7 @@ from fair_shares.api import inputs as inputs_module
 from fair_shares.api import lulucf as lulucf_module
 from fair_shares.api import scenarios as scenarios_module
 from fair_shares.api.sources import Inputs
-from fair_shares.library.exceptions import DataProcessingError
+from fair_shares.library.exceptions import ConfigurationError, DataProcessingError
 from fair_shares.library.preprocessing.coverage import (
     compute_analysis_countries,
     create_coverage_summary,
@@ -88,6 +88,13 @@ class ProcessedData:
     """Which part the remaining carbon budget was rebased for. A budget is
     defined for CO2, so a composite category's budget belongs to its CO2 part
     rather than to the composite."""
+    nghgi_years: tuple[int, int] | None = None
+    """First and last year of the NGHGI-consistent LULUCF record this run
+    loaded, or None when it has no LULUCF source. It bounds which years a
+    LULUCF-containing category can be allocated over, and it is read from the
+    data rather than assumed -- a different land source has a different range.
+    Carried on the result so the allocation step does not have to re-open the
+    file to find out."""
 
     @property
     def emissions(self) -> pd.DataFrame:
@@ -127,6 +134,7 @@ def preprocess(
     rcb_definition: dict | Path | None = None,
     gini_missing_policy: str = "fallback-mean",
     precautionary_lulucf: bool = True,
+    nghgi_correction: bool | None = None,
 ) -> ProcessedData:
     """Turn raw inputs into allocation-ready data for one category.
 
@@ -145,6 +153,22 @@ def preprocess(
         ``"strict"`` stops the run.
     precautionary_lulucf
         When true, a projected land sink cannot enlarge a fossil budget.
+    nghgi_correction
+        Whether to re-express the LULUCF-dependent categories in the national
+        inventory convention. Say it rather than leave it to be inferred:
+
+        ``True``
+            apply the correction. Requires ``inputs.sources.lulucf``.
+        ``False``
+            do not. The emission source's own totals are allocated as
+            published -- which is right when that source already reports on
+            the inventory convention, and wrong when it reports a bookkeeping
+            land flux. Requires ``inputs.sources.lulucf`` to be unset, so the
+            statement cannot contradict the inputs.
+        ``None``
+            infer from whether a LULUCF source was named. Kept for callers
+            that predate the choice being explicit; a config that means to say
+            "no correction" should say ``False``.
 
     Returns
     -------
@@ -153,10 +177,26 @@ def preprocess(
 
     Raises
     ------
+    ConfigurationError
+        If `nghgi_correction` contradicts the sources.
     DataProcessingError
         If a rest-of-world total cannot be formed because a dataset carries no
         world row.
     """
+    if nghgi_correction is True and inputs.sources.lulucf is None:
+        raise ConfigurationError(
+            "nghgi_correction=True asks for the LULUCF-dependent categories to "
+            "be re-expressed in the inventory convention, but no `lulucf` "
+            "source was named, so there is no inventory record to express them "
+            "in. Name one, or say nghgi_correction=False."
+        )
+    if nghgi_correction is False and inputs.sources.lulucf is not None:
+        raise ConfigurationError(
+            f"nghgi_correction=False says the emission source is allocated as "
+            f"published, but a `lulucf` source ({inputs.sources.lulucf!r}) was "
+            "also named. One of the two is not what this run meant: drop the "
+            "source, or say nghgi_correction=True."
+        )
     logger.info("preprocessing %s", category)
 
     world_key = inputs.parameters("emissions").get("world_key")
@@ -168,11 +208,13 @@ def preprocess(
     wanted = _required_parts(category)
     parts = emissions_module.load_emissions(inputs, wanted)
 
-    if inputs.sources.lulucf is not None:
+    if inputs.sources.lulucf is not None:  # nghgi_correction, checked above
         land = lulucf_module.load_lulucf(inputs, world_key)
         parts = lulucf_module.apply_nghgi_corrections(parts, land)
+        nghgi_years = _year_range(land)
     else:
         land = None
+        nghgi_years = None
 
     gdp = inputs_module.load_gdp(inputs)
     population = inputs_module.load_population(inputs)
@@ -278,7 +320,25 @@ def preprocess(
         rcbs=rcbs,
         coverage=coverage,
         analysis_countries=frozenset(analysis),
+        nghgi_years=nghgi_years,
     )
+
+
+def _year_range(frame: pd.DataFrame) -> tuple[int, int] | None:
+    """Return the first and last year a frame carries, or None if it has none.
+
+    Parameters
+    ----------
+    frame
+        Any frame with year columns.
+
+    Returns
+    -------
+    tuple of (int, int) or None
+        The range, inclusive.
+    """
+    years = [int(column) for column in frame.columns if str(column).isdigit()]
+    return (min(years), max(years)) if years else None
 
 
 def _final_categories(category: str) -> tuple[str, ...]:
