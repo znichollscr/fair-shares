@@ -30,9 +30,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from fair_shares.api.pathways import PathwayRequest
 
 from fair_shares.api.pipeline import ProcessedData
 from fair_shares.api.sources import SourceSelection
@@ -102,7 +105,10 @@ class AllocationResult:
     Attributes
     ----------
     request
-        The request this answers.
+        The request this answers -- an `AllocationRequest` for a budget, a
+        `PathwayRequest` for a scenario pathway. Both kinds of run produce the
+        same kind of result, so they share one container rather than two that
+        would have to be kept in step.
     category
         The emission category allocated.
     sources
@@ -111,7 +117,7 @@ class AllocationResult:
         Absolute allocations, one row per (country, emission-category part).
     """
 
-    request: AllocationRequest
+    request: AllocationRequest | PathwayRequest
     category: str
     sources: SourceSelection
     allocations: pd.DataFrame

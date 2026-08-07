@@ -302,45 +302,27 @@ def _apply_projection_variant(frame: pd.DataFrame, variant: str | None) -> pd.Da
     return frame
 
 
-def load_gini(inputs: Inputs, countries: set[str]) -> pd.DataFrame:
-    """Load one Gini coefficient per country.
+# The selection rules this loader implements, and what each is for. They are
+# not interchangeable: a rule is a property of the *dataset*, because it is the
+# dataset that decides what there is to choose between. WDI publishes one value
+# per country-year and no quality flag; WIID publishes many observations per
+# country-year, each with a quality grade.
+GINI_SELECTIONS = ("latest-available", "latest-high-quality")
 
-    Survey Gini is sparse in any single year, so the selection rule takes the
-    latest observation within a window rather than a fixed year -- a
-    single-year rule would more than halve coverage.
+# WIID's own column names for the four things this needs.
+_WIID_COLUMNS = {"c3": "iso3c", "year": "year", "gini": "gini", "quality": "quality"}
 
-    Parameters
-    ----------
-    inputs
-        The run's inputs.
-    countries
-        ISO3 codes to keep. The published file mixes countries and regional
-        aggregates under the same column, and only the caller knows which
-        countries are in play.
+# The grade WIID gives its most reliable observations.
+_WIID_HIGH_QUALITY = "High"
 
-    Returns
-    -------
-    pandas.DataFrame
-        Indexed by ``(iso3c, unit)`` with a single ``gini`` column, on 0-1.
 
-    Raises
-    ------
-    ConfigurationError
-        If the source asks for a selection rule this loader does not implement.
-    ValueError
-        If any value falls outside 0-1 after conversion.
+def _load_gini_world_bank(path, parameters: dict, countries: set[str]) -> pd.DataFrame:
+    """Read World Bank Gini, taking each country's latest observation.
+
+    Survey Gini is sparse in any single year, so the rule takes the latest
+    observation within a window rather than a fixed year -- a single-year rule
+    would more than halve coverage.
     """
-    parameters = inputs.parameters("gini")
-    selection = parameters.get("selection")
-    if selection != "latest-available":
-        raise ConfigurationError(
-            f"this loader implements selection 'latest-available', got "
-            f"{selection!r}. WDI publishes no quality flag, so a "
-            "quality-preferring rule cannot be applied to it."
-        )
-
-    path = _require(inputs.path("gini"), "gini")
-    logger.debug("reading Gini from %s", path)
     raw = pd.read_csv(path, skiprows=_WORLD_BANK_HEADER_ROWS)
 
     identifiers = ["Country Name", "Country Code"]
@@ -359,8 +341,128 @@ def load_gini(inputs: Inputs, countries: set[str]) -> pd.DataFrame:
         long = long[(long["year"] >= first) & (long["year"] <= last)]
 
     latest = long.sort_values(["iso3c", "year"]).groupby("iso3c").tail(1)
-    values = latest[["iso3c", "gini"]].copy()
-    # Published as a percentage; the allocators expect a fraction.
+    return latest[["iso3c", "gini"]].copy()
+
+
+def _load_gini_wiid(path, parameters: dict, countries: set[str]) -> pd.DataFrame:
+    """Read UNU-WIDER Gini, preferring quality over recency.
+
+    WIID carries many observations per country, graded for quality. The rule is
+    **the latest high-quality observation, falling back to the latest of any
+    grade** -- so a country with a good survey from 2015 and a poor one from
+    2020 is described by the 2015 survey.
+
+    That ordering is the point of the rule: taking the latest observation
+    regardless of grade would silently prefer weaker evidence wherever it
+    happens to be more recent, and a Gini is an input to the capability
+    adjustment rather than something a run reports, so nothing downstream would
+    show it had happened.
+
+    **Ties are broken by file order, and they are not rare.** WIID publishes
+    several observations for the same country and year -- different surveys,
+    income concepts and equivalence scales -- and they can disagree sharply:
+    Angola 2009 carries six high-quality values between 38 and 55. Nothing in
+    the data ranks them, so the rule has to pick, and it picks the first as
+    published. That is arbitrary, but it is *deterministic* and it is the same
+    row the notebook pipeline's ``idxmax`` selects, so the two agree. A caller
+    who needs a principled choice among them wants to filter on WIID's
+    ``resource`` / ``scale`` columns before getting here.
+    """
+    raw = pd.read_excel(path)
+
+    missing = sorted(set(_WIID_COLUMNS) - set(raw.columns))
+    if missing:
+        raise DataLoadingError(
+            f"{path} does not look like a WIID extract: it has no column(s) "
+            f"{missing}. Found: {sorted(raw.columns)[:12]}..."
+        )
+
+    frame = raw[list(_WIID_COLUMNS)].rename(columns=_WIID_COLUMNS)
+    frame = frame.dropna(subset=["iso3c", "year", "gini"])
+    frame = frame[frame["iso3c"].isin(countries)]
+    frame["year"] = frame["year"].astype(int)
+
+    window = parameters.get("year_window")
+    if window:
+        first, last = window
+        frame = frame[(frame["year"] >= first) & (frame["year"] <= last)]
+
+    # Sorting once and taking the tail does what a per-group search does, and
+    # does it without a `groupby.apply` that would rebuild a frame per country:
+    # order by (is high quality, year), then the last row of each country is
+    # its latest high-quality observation where it has one and its latest
+    # observation where it does not.
+    #
+    # `_order` descending is the tie-break described above -- among rows that
+    # are equally preferred and equally recent, the last after sorting is the
+    # one that came first in the file.
+    frame = frame.assign(
+        _preferred=(frame["quality"] == _WIID_HIGH_QUALITY).astype(int),
+        _order=range(len(frame)),
+    )
+    ordered = frame.sort_values(
+        ["iso3c", "_preferred", "year", "_order"],
+        ascending=[True, True, True, False],
+    )
+    best = ordered.groupby("iso3c").tail(1)
+
+    graded = int(best["_preferred"].sum())
+    logger.info(
+        "Gini: %d countries, %d of them from a high-quality survey",
+        len(best),
+        graded,
+    )
+    return best[["iso3c", "gini"]].copy()
+
+
+def load_gini(inputs: Inputs, countries: set[str]) -> pd.DataFrame:
+    """Load one Gini coefficient per country.
+
+    Two sources, two selection rules, dispatched on what the catalogue says.
+    See `GINI_SELECTIONS`.
+
+    Parameters
+    ----------
+    inputs
+        The run's inputs.
+    countries
+        ISO3 codes to keep. The published files mix countries and regional
+        aggregates under the same column, and only the caller knows which
+        countries are in play.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Indexed by ``(iso3c, unit)`` with a single ``gini`` column, on 0-1.
+
+    Raises
+    ------
+    ConfigurationError
+        If the source asks for a selection rule this loader does not implement.
+    ValueError
+        If any value falls outside 0-1 after conversion.
+    """
+    parameters = inputs.parameters("gini")
+    selection = parameters.get("selection")
+    if selection not in GINI_SELECTIONS:
+        raise ConfigurationError(
+            f"unknown gini selection {selection!r}. This loader implements "
+            f"{list(GINI_SELECTIONS)}: 'latest-available' for World Bank data, "
+            "which publishes one value per country-year and no quality flag, "
+            "and 'latest-high-quality' for UNU-WIDER's WIID, which grades its "
+            "observations. The rule belongs to the dataset, so a source's "
+            "catalogue entry has to name the one its file supports."
+        )
+
+    path = _require(inputs.path("gini"), "gini")
+    logger.debug("reading Gini from %s (%s)", path, selection)
+
+    if selection == "latest-high-quality":
+        values = _load_gini_wiid(path, parameters, countries)
+    else:
+        values = _load_gini_world_bank(path, parameters, countries)
+
+    # Both sources publish a percentage; the allocators expect a fraction.
     values["gini"] = values["gini"] / 100.0
 
     outside = values[(values["gini"] < 0) | (values["gini"] > 1)]

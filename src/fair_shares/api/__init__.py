@@ -46,6 +46,14 @@ from fair_shares.api.allocation import (
     ClimateTarget,
     allocate,
 )
+from fair_shares.api.pathways import (
+    PathwayRequest,
+    ScenarioGroup,
+    WorldPathway,
+    allocate_pathway,
+    allocate_pathways,
+    select_world_pathway,
+)
 from fair_shares.api.pipeline import ProcessedData, preprocess
 from fair_shares.api.sources import Inputs, SourceSelection
 
@@ -54,8 +62,14 @@ __all__ = [
     "AllocationResult",
     "ClimateTarget",
     "Inputs",
+    "PathwayRequest",
     "ProcessedData",
+    "ScenarioGroup",
     "SourceSelection",
+    "WorldPathway",
     "allocate",
+    "allocate_pathway",
+    "allocate_pathways",
     "preprocess",
+    "select_world_pathway",
 ]
